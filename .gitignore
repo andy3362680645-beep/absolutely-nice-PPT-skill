@@ -1,0 +1,39 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# ===== 大文件与生成产物（不入库，用 .gitkeep 保留目录）=====
+assets/*
+!assets/.gitkeep
+output/*
+!output/.gitkeep
+tech_output/*
+
+# 字体本体较大（单个 10MB+），不入库；按 fonts/README.md 清单下载
+fonts/*
+!fonts/README.md
+!fonts/.gitkeep
+
+# ===== 临时/锁定文件 =====
+*.tmp
+*.bak
+~$*
+*.log
+.env
+
+# ===== 操作系统 =====
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# ===== IDE =====
+.vscode/
+.idea/
+*.swp
