@@ -279,3 +279,43 @@ CLI 拟使用 python -m src.m1，不要求用户手动在 WPS 制作页面。运
 - [官方 SIL OFL 1.1 许可](https://github.com/adobe-fonts/source-han-sans/blob/master/LICENSE.txt)：字体使用许可依据；实际下载与证据登记尚未执行。
 - [python-pptx 文本对象](https://python-pptx.readthedocs.io/en/latest/api/text.html)：文本框/段落支持换行、行距与字体设置；不代替本机 LO 实测。
 - [PyMuPDF TextPage](https://pymupdf.readthedocs.io/en/latest/textpage.html)：rawdict 提供逐字符内容与几何数据，可用于设计上述检查；不是现成的 PPT 溢出检测器。
+
+## 阶段 5 实际执行记录（持续更新）
+
+### 检查点 A：通过
+
+- 隔离环境：Python 3.12.14；python-pptx 1.0.2、Pillow 13.0.0、PyMuPDF 1.28.2。未改应用共享 Python。
+- 官方思源静态字体 2.005R 已下载并登记，用户级字体已安装，许可证原文及忠实渲染留证见 fonts/README.md。
+- `spike_text_fit.py --probe-old`：真实复现极窄框 2 秒超时。
+- 修复后 `spike_text_fit.py`：8 项断行/非法宽度检查＋4 项字号/超量检查通过。
+- `src/text_fit.py` 保留 None 失败语义；新增不可前进保护、明确软换行/行距及东亚字体；根据实际 LO 混排差异保留 10% 横向余量。
+- 首次基线提交：`2a84b12`，在 feature 分支创建，没有推送。
+
+### 检查点 B：通过最小验证，正式产物未验收
+
+- `spike_render.py --out output/m1-single-slide/spike` 最新结果：`passed=true, slides=1, shapes=10, geometry_issues=[]`。
+- 实际 PDF 字体：SourceHanSansSC-Regular / Bold；漏文、越界、碰撞负例均能被拒绝。
+- 第一次失败为字体替换；修复 1 使用系统实际家族别名“思源黑体”，字体检查通过但出现行高度量框误报。
+- 修复 2：使用 PyMuPDF 的字号高度字框与原有 1pt 容差，不将字体行高框等同可见字框；同时处理混排二次折行的横向余量。本轮通过；没有超过 3 轮修复。
+- 输出目录：output/m1-single-slide/spike/3f54457df349/；参考 PNG 为 2560×1440。
+- 真实参考图经会话工具重绘为 redraw.png，1672×941，比例符合已批准口径；逐项目视核对准确文案与来源页脚一致。证据和提示词见 image-redraw-checklist.md 引用的运行目录。
+- 该重绘是最小试验，尚无人类单独验收；不冒充正式 v1 或最终展示图。
+- 额外 OOXML 技能验证工具因其 Python 环境缺少 defusedxml 未运行，未擅自引入新依赖；不声称 XSD 已通过。
+
+### 检查点 C：通过，等待正式素材
+
+- 已落实 deck-outline.md、style-params.md、m1-input.json；JSON 执行源哈希为 `43b940ee92c82081b81b8ba4d8ab18d0447e0452a5a9c52807f174eb698d839d`。
+- `python -m src.m1 validate ... --schema-only`：valid_schema=true，ready=false，退出码 0。
+- 去掉 --schema-only：明确报告独立背景/插画尚未生成，退出码 2；未把缺图状态称为 ready。
+- 重复 ID、负坐标、字号低于 10、来源缺失四类负例均返回 2；compileall 通过。
+- 已补 config.py、outline.py、m1.py 最小验证入口，未写 builder/render/checks 正式模块。
+
+### 发现但不碰
+
+- .ai/templates/review.md 原有第 26 行尾随空格；基线空白核查记录该既有问题，未修改范围外模板。后续新增/修改文件保持正常 diff --check。
+- Tabbit 路由不可用（exit 69），未切换控制其他浏览器；授权证据采用保存的官方许可证原文渲染并如实标注。
+
+### 后续
+
+- 按步骤 7 生成背景与透明插画，检查后交人类确认，再进入步骤 8。
+- 阶段 5 未完成；不得进入阶段 6 或宣称 M1 已完成。
