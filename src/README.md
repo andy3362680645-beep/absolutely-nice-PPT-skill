@@ -4,6 +4,18 @@
 
 ## 已就位
 
+- `config.py`：解析项目相对路径、字体及运行参数，不包含个人路径。
+- `outline.py`：读取/校验 M1 单页 JSON、素材存在性、背景比例与透明 alpha。
+- `m1.py`：当前提供 `validate`，其余 build/check/prepare-image 按设计后续实现。
+
+当前可运行：
+
+```powershell
+.venv/Scripts/python.exe -m src.m1 validate --input specs/2026-10-18-m1-single-slide/m1-input.json --schema-only
+```
+
+去掉 `--schema-only` 会校验实际素材；素材缺失返回非零。结构通过不表示已可构建或已完成 M1。
+
 - `text_fit.py`：中文文本适配（三道防线的防线①）。
   - `cjk_wrap(text, font, max_width)`：中文按字断行、英文整词、标点避头尾。
   - `best_font_size(...)`：求最大可用字号；超量返回 None。
@@ -14,7 +26,7 @@
 
 | 模块 | 职责 | 里程碑 |
 |---|---|---|
-| `outline.py` | 读取/校验 deck-outline.md，统一大纲数据结构 | M1 |
+| `outline.py` | 单页 JSON 读取/校验已实现；Markdown 为阅读快照，不做通用解析 | M1 |
 | `style.py` | 读取 style-params；截图色板提取 | M4 |
 | `images.py` | 调用生图模型生成背景/插画，透明底、命名、参数登记 | M2 |
 | `builder.py` | 组装 v1 pptx（背景/插画/文本框分层，文本走 text_fit） | M1/M2 |
