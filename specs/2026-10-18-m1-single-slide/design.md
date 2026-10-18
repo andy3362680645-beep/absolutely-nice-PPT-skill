@@ -317,5 +317,7 @@ CLI 拟使用 python -m src.m1，不要求用户手动在 WPS 制作页面。运
 
 ### 后续
 
-- 按步骤 7 生成背景与透明插画，检查后交人类确认，再进入步骤 8。
+- 步骤 7 已生成独立背景与透明插画，完整输入校验返回 valid_schema=true、ready=true、issues=[]。真实尺寸、alpha、提示词和哈希见 assets/m1-single-slide/source-record.json，文件未入库。
+- 素材待人类确认，尚未进入步骤 8 组装正式 v1。确认后继续 builder/render/checks 与人类 v1 检查。
+- 已提交：检查点 A/基线 2a84b12；检查点 B 27c4a02；检查点 C b65d427。作者身份按用户提供信息仅配置本仓库，没有推送或合入。
 - 阶段 5 未完成；不得进入阶段 6 或宣称 M1 已完成。

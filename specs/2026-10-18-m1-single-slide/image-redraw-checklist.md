@@ -24,12 +24,15 @@
 
 ## 正式素材与最终重绘
 
-- 独立背景：待生成并确认。
-- 独立透明插画：待生成并确认。
+- 独立背景：已生成 assets/m1-single-slide/bg_01.png，1672×941，无字；比例校验通过，待人类确认。
+- 独立透明插画：已生成 assets/m1-single-slide/ill_01.png，1024×1536，RGBA，alpha 范围 0～254、四角为 0；透明校验通过，待人类确认。
+- 素材完整提示词、真实尺寸与哈希：assets/m1-single-slide/source-record.json；内置工具、底层型号未知，未复制旧整页图素材。
 - 正式 v1：待构建及用户确认。
 - 最终重绘：待执行。
 - 最终图逐字/数字核对：待执行。
 - 最终视觉验收：待人类确认。
+
+正式输入素材核查：`python -m src.m1 validate --input specs/2026-10-18-m1-single-slide/m1-input.json` 返回 valid_schema=true、ready=true、issues=[]。此 ready 仅代表结构/字体/文件检查通过，不代替人类素材确认或最终验收。
 
 ## 运行检查的非阻塞发现
 
