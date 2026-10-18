@@ -25,11 +25,11 @@
       {"id": "title", "role": "title", "text": "喜茶 2025 年度营销回顾", "box_pt": [40, 36, 880, 66], "font_key": "bold", "cap_pt": 40, "floor_pt": 32, "color": "161A15"},
       {"id": "subtitle", "role": "subtitle", "text": "用户共创，让灵感成为日常", "box_pt": [40, 112, 790, 48], "font_key": "regular", "cap_pt": 26, "floor_pt": 22, "color": "161A15"},
       {"id": "heading-1", "role": "heading", "text": "喜贴回归", "box_pt": [40, 258, 196, 40], "font_key": "bold", "cap_pt": 24, "floor_pt": 22, "color": "161A15"},
-      {"id": "body-1", "role": "body", "text": "2025 年 11 月，喜茶 GO 小程序回归喜贴功能。", "box_pt": [40, 312, 196, 134], "font_key": "regular", "cap_pt": 20, "floor_pt": 18, "color": "161A15"},
+      {"id": "body-1", "role": "body", "text": "2025 年 11 月，\n喜茶 GO 小程序\n回归喜贴功能。", "box_pt": [40, 312, 196, 134], "font_key": "regular", "cap_pt": 20, "floor_pt": 18, "color": "161A15"},
       {"id": "heading-2", "role": "heading", "text": "百万共创", "box_pt": [264, 258, 196, 40], "font_key": "bold", "cap_pt": 24, "floor_pt": 22, "color": "161A15"},
-      {"id": "body-2", "role": "body", "text": "上线一周，用户提交画作超 100 万份。", "box_pt": [264, 312, 196, 134], "font_key": "regular", "cap_pt": 20, "floor_pt": 18, "color": "161A15"},
+      {"id": "body-2", "role": "body", "text": "上线一周，用户\n提交画作超\n100 万份。", "box_pt": [264, 312, 196, 134], "font_key": "regular", "cap_pt": 20, "floor_pt": 18, "color": "161A15"},
       {"id": "heading-3", "role": "heading", "text": "灵感小卡", "box_pt": [488, 258, 196, 40], "font_key": "bold", "cap_pt": 24, "floor_pt": 22, "color": "161A15"},
-      {"id": "body-3", "role": "body", "text": "全年发放近 30 款、超 500 万份。", "box_pt": [488, 312, 196, 134], "font_key": "regular", "cap_pt": 20, "floor_pt": 18, "color": "161A15"},
+      {"id": "body-3", "role": "body", "text": "全年发放近 30 款、\n超 500 万份。", "box_pt": [488, 312, 196, 134], "font_key": "regular", "cap_pt": 20, "floor_pt": 18, "color": "161A15"},
       {"id": "source", "role": "source", "text": "数据来源：北京日报客户端，2026-01-23。", "box_pt": [40, 486, 650, 28], "font_key": "regular", "cap_pt": 12, "floor_pt": 11, "color": "161A15"}
     ],
     "images": [

@@ -27,11 +27,15 @@ def load_outline(input_path: str | Path) -> dict:
     """读取并验证 schema v1 单页结构；素材存在性由 check_assets 单独检查。"""
     path = project_path(input_path)
     data = json.loads(path.read_text(encoding="utf-8-sig"))
-    if not isinstance(data, dict) or data.get("schema_version") != 1:
+    if not isinstance(data, dict) or type(data.get("schema_version")) is not int or data["schema_version"] != 1:
         raise ValueError("仅支持 schema_version=1")
+    if not isinstance(data.get("title"), str) or not data["title"].strip():
+        raise ValueError("缺少有效演示标题")
     if not isinstance(data.get("deck_id"), str) or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", data["deck_id"]):
         raise ValueError("deck_id 必须为英文小写连字符标识")
     canvas = data.get("canvas", {})
+    if not isinstance(canvas, dict):
+        raise ValueError("canvas 必须为对象")
     width, height = canvas.get("width_pt"), canvas.get("height_pt")
     if not all(_number(v) and v > 0 for v in (width, height)) or abs(width / height - 16 / 9) > 1e-6:
         raise ValueError("M1 画布必须为有效的 16:9")
@@ -39,6 +43,8 @@ def load_outline(input_path: str | Path) -> dict:
     if not isinstance(reference_width, int) or not 640 <= reference_width <= 4096:
         raise ValueError("参考图宽度必须为 640～4096 的整数")
     style = data.get("style", {})
+    if not isinstance(style, dict):
+        raise ValueError("style 必须为对象")
     fonts = style.get("fonts")
     if not isinstance(fonts, dict) or not fonts:
         raise ValueError("缺少字体配置")
@@ -85,6 +91,8 @@ def load_outline(input_path: str | Path) -> dict:
             raise ValueError(f"图片配置无效: {picture['id']}")
         if not isinstance(picture.get("require_alpha"), bool):
             raise ValueError(f"图片透明要求无效: {picture['id']}")
+        if picture["role"] == "illustration" and not picture["require_alpha"]:
+            raise ValueError(f"独立插画必须要求真实透明通道: {picture['id']}")
         safe = picture.get("subject_safe_box_pt")
         if safe is not None:
             if not _valid_box(safe, width, height):
@@ -98,6 +106,11 @@ def load_outline(input_path: str | Path) -> dict:
     sources = data.get("sources")
     if not isinstance(sources, list) or not sources or not any(text["role"] == "source" for text in texts):
         raise ValueError("缺少资料来源或页脚")
+    for source in sources:
+        if not isinstance(source, dict) or not all(isinstance(source.get(key), str) and source[key].strip() for key in ("publisher", "date", "url")):
+            raise ValueError("来源必须包含发布机构、日期与 URL")
+        if not source["url"].startswith(("https://", "http://")):
+            raise ValueError("来源 URL 必须为 HTTP(S) 链接")
     data["_input_path"] = path
     data["_input_sha256"] = sha256_file(path)
     return data

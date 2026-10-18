@@ -1,6 +1,6 @@
 # 仓库架构（随代码刷新）
 
-> 最后更新：M1 阶段 5 检查点 C；输入验证入口已实现，组装/渲染/正式检测模块尚未开发。
+> 最后更新：2026-10-19，M1 阶段 5 检查点 D 与步骤 9 通过；正式 v1 等待人类确认，最终整页生图尚未执行。
 > 每次结构性改动后必须更新本文件，随提交一起合入。
 
 ## 目标架构
@@ -17,73 +17,69 @@ PPT_agent/
 ├── src/                   # 代码
 │   ├── text_fit.py        # 中文文本适配（已就位，已实测）
 │   ├── config.py          # M1 路径、字体与运行配置（已实现）
-│   ├── m1.py              # M1 CLI，当前实现 validate（其余命令待开发）
+│   ├── m1.py              # M1 CLI：validate / build / check 已实现
 │   ├── outline.py         # 大纲读取与校验
 │   ├── style.py           # 风格参数、色板提取
 │   ├── images.py          # 生图调度与素材管理
-│   ├── builder.py         # v1 pptx 组装
+│   ├── builder.py         # 单页 v1 组装、最小 manifest、读回核对（已实现）
 │   ├── manifest.py        # v1 清单生成与读取
 │   ├── diff.py            # v1 改动识别
-│   ├── render.py          # 渲染（LO / HTML 两阶段）
-│   └── checks.py          # 几何检测 / 视觉自检辅助
+│   ├── render.py          # LO 辅助 PDF/参考 PNG 导出（已实现）
+│   └── checks.py          # v1 对象、PDF 内容/字体/几何检查（已实现）
 ├── fonts/                 # 字体文件（不入库）
 ├── assets/                # 背景、插画素材（不入库）
 ├── output/                # 每个任务的产物：v1/v2/manifest/渲染图（不入库）
 └── specs/                 # 开发任务留档（入库）
 ```
 
-## 一次 PPT 产出的数据流
+## 当前 M1 数据流
 
 ```
-deck-outline.md（逐页内容）
-style-params.md（风格参数）
-        │
-        ├──► images.py ──► assets/（背景 + 透明底插画 PNG）
-        │
+m1-input.json（执行源；大纲/风格 Markdown 为阅读快照）
+        ＋ 会话生图工具生成的背景、透明插画（用户已确认）
         ▼
-builder.py（text_fit 处理所有中文文本）
-        │
-        ├──► output/{任务名}/{主题}_v1_可编辑.pptx
-        └──► output/{任务名}/manifest.json
-                │
-                ▼
-用户在 WPS/PPT 改 v1
-                │
-                ▼
-diff.py：读回 v1 与 manifest diff → 受影响页
-                │
-                ▼
-render.py：
-  M1 阶段 = LibreOffice 转 PDF/PNG
-  M5 阶段 = HTML/CSS 精排版 + Playwright 截图
-                │
-                ▼
-checks.py：几何检测 + 视觉自检
-                │
-                ▼
-output/{任务名}/{主题}_v2_展示版.pptx + 逐页 PNG
+build → builder.py → text_fit.py
+        ├── runs/{run_id}/{主题}_v1_可编辑.pptx
+        ├── runs/{run_id}/manifest.json
+        └── latest.json（运行目录、输入/产物哈希与确认状态）
+        ▼
+check → render.py（LO 导出辅助 PDF/参考 PNG）
+      → checks.py（原生对象、内容、字体、几何）→ checks.json
+        ▼
+AI 目视检查 ＋ 用户确认 v1 ← 当前停留点
+        ▼
+待实现：prepare-image 交接包 → 会话生图工具参考 v1 整页重绘
+        ▼
+待完成：最终 PNG 逐字/数字核对、AI 与人类视觉验收
 ```
 
-## manifest.json 结构（规划，以实现为准）
+## manifest.json（M1 已实现的最小结构）
 
 ```json
 {
-  "deck": "主题",
+  "schema_version": 1,
+  "deck_id": "任务标识",
+  "run_id": "本次运行标识",
+  "input_sha256": "执行源哈希",
+  "canvas_emu": [12192000, 6858000],
+  "font_records": {"regular": {"path": "fonts/字体文件.otf", "sha256": "字体哈希"}},
   "slides": [
     {
       "slide_index": 1,
       "shapes": [
-        {"shape_id": 10, "type": "picture", "name": "bg",
-         "left": 0, "top": 0, "width": 12192000, "height": 6858000,
-         "image_path": "assets/xxx/bg_01.png"},
-        {"shape_id": 11, "type": "text", "name": "title",
-         "text": "……", "font": "Source Han Sans", "font_size": 32,
-         "left": 800000, "top": 500000, "width": 10000000, "height": 1200000}
+        {"id": "bg", "shape_id": 2, "type": "picture", "role": "background",
+         "box_emu": [0, 0, 12192000, 6858000], "box_pt": [0, 0, 960, 540],
+         "image_path": "assets/xxx/bg_01.png", "image_sha256": "素材哈希"},
+        {"id": "title", "shape_id": 4, "type": "text", "role": "title",
+         "text": "……", "font_key": "regular", "font_name": "思源黑体", "font_size_pt": 32,
+         "box_pt": [40, 40, 800, 60], "effective_box_pt": [42, 42, 796, 56]}
       ]
     }
   ]
 }
 ```
+
+以上为字段节选；完整记录由 builder 同步生成，还包括层顺序、实际换行、字号下限、图片尺寸/alpha、字体及来源哈希。`manifest.py`、自动 diff、多页和整图 v2 PPTX 仍是后续能力。
 
 ## 模块依赖原则（自底向上）
 
@@ -93,10 +89,11 @@ output/{任务名}/{主题}_v2_展示版.pptx + 逐页 PNG
 
 ## 当前状态
 
-- 已有运行入口：`python -m src.m1 validate --input specs/2026-10-18-m1-single-slide/m1-input.json`；正式素材缺失会失败，`--schema-only` 只核验结构与字体且不标记 ready。
+- 已有运行入口：`python -m src.m1 validate/build/check`，真实命令见 src/README.md。`--schema-only` 只核验结构与字体且不标记 ready。
 - `outline.py` 已实现单页 JSON/图片检查；`config.py` 集中解析路径与字体；`text_fit.py` 已验证极窄框终止、混排和字号下限，并补显式行距、折行与东亚字体。
-- `specs/.../spike_render.py` 已完成单页 LO/PDF 与字体几何最小验证；这不是正式 builder/render/checks 实现。
-- 最终生图采用会话工具参考 v1 导出图重绘；工具接入不在本地 Python 中伪造。上文完整数据流仍为目标架构，后续按 M1 实际模块继续同步。
+- `builder.py` 已生成真实单页 v1；`render.py` 和 `checks.py` 已通过真实导出与内容/字体/几何检查。背景允许与文字叠放，插画按主体安全区检查；自动检测不替代目视检查。
+- 输入/manifest/PPTX 哈希变化会拒绝沿用当前运行；每次 check 重新导出，清除旧确认。超量返回失败，不静默截断。
+- 最终生图采用会话工具参考 v1 导出图重绘；工具接入不在本地 Python 中伪造。只有 spike 重绘证据，正式最终图待 v1 确认后执行。LO 导出不是最终美化交付。
 
 - [x] 协作规范、SOP、模板、知识库骨架
 - [x] text_fit.py（中文适配三道防线）
@@ -104,5 +101,5 @@ output/{任务名}/{主题}_v2_展示版.pptx + 逐页 PNG
 - [ ] M2 完整 v1
 - [ ] M3 改动闭环
 - [ ] M4 风格参数提取
-- [ ] M5 HTML 渲染
+- [ ] 后续渲染扩展（原 HTML 规划需按已确认生图路线继续同步）
 - [ ] M6 skill/Agent 封装

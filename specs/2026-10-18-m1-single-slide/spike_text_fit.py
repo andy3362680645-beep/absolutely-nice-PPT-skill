@@ -43,12 +43,15 @@ def main() -> None:
         ("explicit_newline", "喜贴回归\n百万共创", 180),
         ("long_western", "https://example.com/" + "a" * 100, 100),
         ("punctuation", "共创（灵感）与日常，带来温暖。", 100),
+        ("punctuation_boundary", "一二三四。", 96),
     ]
     results = []
     for label, content, width in cases:
         lines = text_fit.cjk_wrap(content, font, width)
         assert "".join("".join(lines).split()) == "".join(content.split()), label
         assert all(text_fit.text_width_px(font, line) <= width + 0.01 for line in lines), label
+        if label == "punctuation_boundary":
+            assert all(not line or line[0] not in text_fit.NO_LINE_START for line in lines), lines
         results.append({"case": label, "lines": len(lines), "passed": True})
     for width in (0, -1, 0.1):
         try:

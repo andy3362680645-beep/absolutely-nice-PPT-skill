@@ -315,9 +315,30 @@ CLI 拟使用 python -m src.m1，不要求用户手动在 WPS 制作页面。运
 - .ai/templates/review.md 原有第 26 行尾随空格；基线空白核查记录该既有问题，未修改范围外模板。后续新增/修改文件保持正常 diff --check。
 - Tabbit 路由不可用（exit 69），未切换控制其他浏览器；授权证据采用保存的官方许可证原文渲染并如实标注。
 
+### 检查点 D：通过（2026-10-19）
+
+- 人类对独立背景与透明插画回复“可以”，素材确认已记录；完整输入校验为 valid_schema=true、ready=true、issues=[]。真实尺寸、alpha、提示词和哈希见 assets/m1-single-slide/source-record.json，文件未入库。
+- 已实现 builder.py 与 build 入口，所有文本走 text_fit；背景与插画独立。最小 manifest 记录输入/素材/字体哈希、原生对象 ID、层次、坐标及实际字号，PPTX 保存后重开核对。
+- 真实命令：`.venv/Scripts/python.exe -m src.m1 build --input specs/2026-10-18-m1-single-slide/m1-input.json --out output/m1-single-slide`。
+- 最新输出：passed=true、slides=1、shapes=11；标题 40pt、副标题 26pt、小标题 24pt、正文 20pt、页脚 12pt。
+- 运行目录：`output/m1-single-slide/runs/20261018T163215Z-57aaf205/`。文件：`喜茶 2025 年度营销回顾_v1_可编辑.pptx`、manifest.json。
+- 初版视觉发现词语拆行和孤立句号；第一轮修复在断行工具增加标点随前字下移保护，并只在输入正文调整显式语义换行。文案字符、数字及限定词不变；修复后重新 build/check 通过，无第二轮修复。
+- 新执行源哈希：`c0ee451939f629bd38ce301cd6a3678e8345efb7568dc5ac428862ecfa373435`。检查点 C 的旧哈希保留为历史记录，旧产物未沿用为最新确认。
+
+### 步骤 9：自动检测与 AI 视觉初检通过，检查点 E 待完成
+
+- 实现 render.py、checks.py 与 check 入口，实际命令：`.venv/Scripts/python.exe -m src.m1 check --input specs/2026-10-18-m1-single-slide/m1-input.json --out output/m1-single-slide`。
+- 真实输出：passed=true、state=awaiting_v1_confirmation、issues=[]、slides=1、shapes=11。
+- 实际 PDF 字体为 BAAAAA+SourceHanSansSC-Bold、CAAAAA+SourceHanSansSC-Regular，无替换；9 个文本块与确认文案逐项一致（忽略布局空白）。
+- 辅助 PDF 与 2560×1440 参考图位于本次运行 `render-898dea60/`；报告 checks.json。AI 已查看参考图，未见文字裁切、孤立句号、内容遮挡或“喜茶”“提交”拆行。
+- 负例实测：正文 2000 个“茶”在最低字号仍超量，明确失败且不写成功状态/PPTX；检测能拒绝漏文、文本碰撞、文本/插画主体碰撞；改变输入哈希拒绝沿用旧运行。
+- 验证扩展：style=[]、canvas=null、schema_version=true、title=123 四类非法结构返回退出码 2 与 JSON 错误，无 traceback；真实 validate 返回 ready=true。
+- `.venv/Scripts/python.exe specs/2026-10-18-m1-single-slide/spike_text_fit.py`：修复后 9 项断行/非法宽度检查＋4 项字号/超量检查通过；compileall 与 git diff --check 通过。
+- checks.json 中 visual_review/v1_confirmation 仍为 pending：自动生成的报告不代替此处 AI 初检记录或人类确认。latest.json 的 v1_confirmed=false；未执行最终重绘。
+
 ### 后续
 
-- 步骤 7 已生成独立背景与透明插画，完整输入校验返回 valid_schema=true、ready=true、issues=[]。真实尺寸、alpha、提示词和哈希见 assets/m1-single-slide/source-record.json，文件未入库。
-- 素材待人类确认，尚未进入步骤 8 组装正式 v1。确认后继续 builder/render/checks 与人类 v1 检查。
-- 已提交：检查点 A/基线 2a84b12；检查点 B 27c4a02；检查点 C b65d427。作者身份按用户提供信息仅配置本仓库，没有推送或合入。
+- 当前停留步骤 9 后的人类 v1 检查点。按步骤 10 与产品 SOP“用户确认后进入 v2”，先交付实际 v1 及预览供检查；不能把素材确认当成 v1 确认。
+- 用户确认当前 v1 后，继续 prepare-image、正式整页生图与核对，再执行步骤 11～12 的整体流程文档同步。当前已随结构改动同步 src/README.md、architecture.md，登记已复现的文本问题。
+- 已提交：检查点 A/基线 2a84b12；检查点 B 27c4a02；检查点 C b65d427；素材状态记录 4ba86bf。作者身份按用户提供信息仅配置本仓库，没有推送或合入。
 - 阶段 5 未完成；不得进入阶段 6 或宣称 M1 已完成。
