@@ -44,7 +44,7 @@ PPT_agent/
 
 已确认大纲/风格 → 会话生图生成独立素材 → 单页可编辑 PPT（中文自适应）→ LO 辅助导出及几何/内容检查 → 用户确认 v1 → 生图交接包 → 会话工具整页重绘 → 逐字/数字与视觉核对。
 
-四个本地命令及运行条件见 [src/README.md](src/README.md)。样例执行源为 [m1-input.json](specs/2026-10-18-m1-single-slide/m1-input.json)，开发证据见 [design.md](specs/2026-10-18-m1-single-slide/design.md)。首张正式重绘已获人类视觉确认，阶段 5 检查点已完成，待进入阶段 6；不代表代码审查、合入或完整 skill 已验收。
+四个本地命令及运行条件见 [src/README.md](src/README.md)。样例执行源为 [m1-input.json](specs/2026-10-18-m1-single-slide/m1-input.json)，开发证据见 [design.md](specs/2026-10-18-m1-single-slide/design.md)。首张正式重绘已获人类视觉确认，阶段 5 检查点及阶段 6 三类自审已通过，等待人类合入；完整 skill 尚未封装。[审查报告与本地合并说明](specs/2026-10-18-m1-single-slide/review.md)记录第一轮修复及验证边界。
 
 最终展示图使用当前会话的 image_gen 工具重绘，底层型号未知；没有独立 API 接入。交付为 v1 PPTX、模型原生 PNG、辅助 PDF/参考图和核对记录。整图 v2 PPTX、多页、自动 diff 与 skill 打包尚未实现；修改 v1 后先人工同步输入再重跑。
 
