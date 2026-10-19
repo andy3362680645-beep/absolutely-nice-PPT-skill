@@ -28,7 +28,7 @@
 
 `latest.json` 指向 `runs/{run_id}/` 下的 PPTX、manifest 与本次辅助导出，记录输入和文件哈希。`check` 通过只进入 `awaiting_v1_confirmation`；先查看参考图并让用户检查 v1，再准备会话生图工具所需输入。最终展示 PNG 由模型整页重绘，PDF/参考 PNG 用于核对与交接。
 
-`prepare-image` 核对输入、PPTX、素材、字体、检测报告及辅助导出哈希，输出 `runs/{run_id}/image-input/` 的 handoff.json、exact-text.json、redraw-prompt.txt。路径引用分别标明 project_root 或 run_dir；会话查看参考图与素材后调用 image_gen，再保存原图及 image-review.json。当前样例已完成首次整页重绘、AI 逐项核对与人类视觉确认，运行状态为 `accepted`；该状态仅表示本图获确认，阶段 6 三类自审已通过，等待人类合入。本地程序不冒充自动 OCR、自动审美验收或独立生图 API。
+`prepare-image` 核对输入、PPTX、素材、字体、检测报告及辅助导出哈希，输出 `runs/{run_id}/image-input/` 的 handoff.json、exact-text.json、redraw-prompt.txt。路径引用分别标明 project_root 或 run_dir；会话查看参考图与素材后调用 image_gen，再保存原图及 image-review.json。当前样例已完成首次整页重绘、AI 逐项核对与人类视觉确认，运行状态为 `accepted`；该状态表示本图获确认，开发审查与合入记录分别见 review.md 及 Git 历史。本地程序不冒充自动 OCR、自动审美验收或独立生图 API。
 
 生成最终图后的 `prepare-image` 复跑会核对原交接包、准确文字、原提示词、实际提交提示词、图像与核对/验收记录，只读复用原包。证据缺失、哈希变化或验收未绑定当前图像时返回失败，当前运行标为 failed，不覆盖原证据或自动沿用 accepted。恢复证据或重新检查/重绘后再验收。
 
