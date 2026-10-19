@@ -28,7 +28,7 @@
 
 `latest.json` 指向 `runs/{run_id}/` 下的 PPTX、manifest 与本次辅助导出，记录输入和文件哈希。`check` 通过只进入 `awaiting_v1_confirmation`；先查看参考图并让用户检查 v1，再准备会话生图工具所需输入。最终展示 PNG 由模型整页重绘，PDF/参考 PNG 用于核对与交接。
 
-`prepare-image` 核对输入、PPTX、素材、字体、检测报告及辅助导出哈希，输出 `runs/{run_id}/image-input/` 的 handoff.json、exact-text.json、redraw-prompt.txt。路径引用分别标明 project_root 或 run_dir；会话查看参考图与素材后调用 image_gen，再保存原图及 image-review.json。当前样例已完成首次整页重绘和 AI 逐项核对，状态为 `awaiting_visual_acceptance`，尚无人类最终验收；本地程序不冒充自动 OCR、自动审美验收或独立生图 API。
+`prepare-image` 核对输入、PPTX、素材、字体、检测报告及辅助导出哈希，输出 `runs/{run_id}/image-input/` 的 handoff.json、exact-text.json、redraw-prompt.txt。路径引用分别标明 project_root 或 run_dir；会话查看参考图与素材后调用 image_gen，再保存原图及 image-review.json。当前样例已完成首次整页重绘、AI 逐项核对与人类视觉确认，运行状态为 `accepted`；该状态仅表示本图获确认，开发阶段 6 的审查与人类合入仍待进行。本地程序不冒充自动 OCR、自动审美验收或独立生图 API。
 
 用户改 v1 后先人工同步输入再重建；当前会拒绝输入或 PPTX 与记录不一致，不执行自动 diff。超量文本构建失败，需精简或调整大纲。
 

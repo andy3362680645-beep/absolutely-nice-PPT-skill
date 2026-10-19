@@ -1,6 +1,6 @@
 # 技术方案 · M1 单页生图展示链路
 
-> 2026-10-18，方案已获人类确认，进入阶段 5；先环境与 spike，再正式模块。验证结果据实回填。
+> 方案于 2026-10-18 获确认；2026-10-19 阶段 5 检查点 A～F 完成，正式 v1 与模型图已获人类视觉确认。当前待阶段 6 审查验收；下文保留方案及各次运行的历史记录，以末尾收尾状态为准。
 > 依据：spec.md 阶段 1～3，以及人类“认可范围，继续”。此回复认可勘察范围，不等于已确认本方案。
 
 ## 方案概述
@@ -383,3 +383,22 @@ CLI 拟使用 python -m src.m1，不要求用户手动在 WPS 制作页面。运
 - 定点更新 02-feasibility.md、04-coding.md、05-review.md、pitfalls.md，删除“美化必须 HTML”的旧唯一路线断言；区分 v1 自动几何与模型位图目视核对，不冒称 OCR、指定字体或指定底层型号。
 - 这是阶段 5 内的实施说明同步；未提前创建阶段 6 review.md，未推送或合入。最终视觉确认后才能收尾阶段 5 并停下汇报。
 - 文档验证：实际 CLI --help 列出 validate/build/check/prepare-image，prepare-image --help 与文档参数一致；rg 在本次当前运行说明中未找到旧唯一路线断言。检查点 F 的流程同步已完成；检查点 E 的人类最终视觉验收仍待确认。
+
+### 阶段 5 收尾（2026-10-19）
+
+- 人类回复“可以，继续吧”，确认正式模型原图的视觉效果。当前运行 `20261019T001301Z-b675a7c0`，输入与最终图哈希未改变；image-review.json 记录原话、日期、具体图像哈希，latest.json 更新为 accepted、human_accepted=true。
+- 本轮真实完整性核验输出：passed=true、state=accepted、slides=1、shapes=15、geometry_issues=[]、reviewed_texts=13、human_visual_acceptance=passed、size_px=[1672,941]、artifact_hashes_verified=true。核对了 PPTX、manifest、当前字体/图片、检测报告、PDF、参考图、交接包、实际提示词、最终原图与核对记录的关联；没有重新生成或修改已确认图片。
+
+| 检查点 | 收尾结果 |
+|---|---|
+| A 环境与中文适配 | 通过；极窄框复现后修复，9 项断行/边界＋4 项字号检查通过 |
+| B 辅助渲染/模型重绘 spike | 通过；真实 PPT/LO/PDF 与参考图生图证据具备 |
+| C 输入与素材校验 | 通过；正例 ready=true，非法字段/缺图负例被拒绝 |
+| D 独立素材与正式 v1 | 通过；当前 1 页、13 文本框＋2 独立图片，v1 已获确认 |
+| E 真实检测与整页重绘 | 通过；几何/内容/字体检查、13 项最终图目视核对与人类视觉确认具备 |
+| F 流程文档同步 | 通过；命令帮助、旧路线断言检索及本地链接核对已执行，文档与实现一致 |
+
+- 主要实现：config.py、outline.py、text_fit.py、builder.py、render.py、checks.py、m1.py；入口、执行源、快照、spike 与证据索引见 src/README.md 和本任务目录。生成文件、字体本体与隔离环境未入库。
+- 发现但不碰：原模板尾随空格、Tabbit 路由不可用保持既有记录；额外 OOXML 工具缺 defusedxml，不声称 XSD 通过。阶段 6 可据此评估补充验证，不假称已在 WPS/PowerPoint 实际打开。
+- 已实现的 M1 不包含多页、自动 diff、独立生图 API、整图 v2 PPTX 或 skill 打包。accepted 只表示本图获确认，不表示开发审查或合入已完成。
+- 阶段 5 待确认问题：无。依 AGENTS 第 9 条在本阶段结束处停下汇报；未创建 review.md、未进入阶段 6、未推送或合入。

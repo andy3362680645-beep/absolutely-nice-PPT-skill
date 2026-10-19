@@ -37,8 +37,8 @@
 - 原图 SHA256：`b50c14eaf8b863dcafe19aaa5aec22bfd2ee751efd723fbf1c427f677e95c8ff`。
 - 交接证据：本运行 `image-input/handoff.json`、`exact-text.json`、`redraw-prompt.txt`；含输入/PPTX/报告/参考页/素材/提示词哈希。最终检查记录为 `image-review.json`。
 - 最终图逐字/数字核对：13 项 AI 目视核对通过，允许布局空白变化；标题、副标题、三组标题/说明、三个摘要、近/超、全部数字、GO 和来源页脚均保留。没有声称执行 OCR 或对最终位图做文本框几何检测。
-- AI 视觉初检：数据区域为自然纸片质感，杯体、茶叶、背景和投影协调；未见明显文字遮挡/裁切或新增免责文字。只代表 AI 初检，待人类判断实际美观度。
-- 最终视觉验收：待人类确认。
+- AI 视觉初检：数据区域为自然纸片质感，杯体、茶叶、背景和投影协调；未见明显文字遮挡/裁切或新增免责文字。
+- 最终视觉验收：2026-10-19 人类回复“可以，继续吧”，确认本次原图效果。确认绑定上述原图及输入哈希，image-review.json 与 latest.json 已记录，运行状态 accepted。此前的 spike 图仍不作为单独验收的正式产物。
 
 正式输入素材核查：`python -m src.m1 validate --input specs/2026-10-18-m1-single-slide/m1-input.json` 返回 valid_schema=true、ready=true、issues=[]。此 ready 仅代表结构/字体/文件检查通过，不代替人类素材确认或最终验收。
 
