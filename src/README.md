@@ -7,8 +7,8 @@
 - `config.py`：解析项目相对路径、字体及运行参数，不包含个人路径。
 - `outline.py`：读取/校验 M1 单页 JSON、素材存在性、背景比例与透明 alpha。
 - `m1.py`：提供 `validate`、`build`、`check`；`prepare-image` 待 v1 确认后按设计继续实现。
-- `builder.py`：分层组装单页可编辑 PPT，同步最小 manifest，再重开核验元素与素材哈希。
-- `render.py`：LibreOffice 辅助 PDF/参考 PNG 导出，每次独立目录，不读取陈旧文件。
+- `builder.py`：分层组装单页可编辑 PPT，同步最小 manifest，再重开核验元素与素材哈希；文字框支持可选底色、内边距、左/中/右对齐，并读回核验。
+- `render.py`：LibreOffice 辅助 PDF/参考 PNG 导出，每次独立目录，不读取陈旧文件；Windows 中临时加载配置字体到当前会话，退出 LO 后释放本次引用。
 - `checks.py`：核对原生对象、PDF 文案/字体/字号与几何，输出 checks.json；视觉与人类确认单独记录。
 
 当前可运行：
@@ -27,6 +27,8 @@
 `latest.json` 指向 `runs/{run_id}/` 下的 PPTX、manifest 与本次辅助导出，记录输入和文件哈希。`check` 通过只进入 `awaiting_v1_confirmation`；先查看参考图并让用户检查 v1，再准备会话生图工具所需输入。最终展示 PNG 由模型整页重绘，PDF/参考 PNG 用于核对与交接。当前尚未完成正式最终图，不把普通导出称为最终效果。
 
 用户改 v1 后先人工同步输入再重建；当前会拒绝输入或 PPTX 与记录不一致，不执行自动 diff。超量文本构建失败，需精简或调整大纲。
+
+`slides[].content_groups` 可用完整句和有序 `shape_ids` 关联拆分说明；输入加载时拼接核对，保留“近”“超”和单位。数字摘要另用原生文本框强调，完整确认句仍保留。最终生图前须使用当前输入和当前 v1 的全部准确文案，不能沿用旧页的文字清单。
 
 - `text_fit.py`：中文文本适配（三道防线的防线①）。
   - `cjk_wrap(text, font, max_width)`：中文按字断行、英文整词、标点避头尾。

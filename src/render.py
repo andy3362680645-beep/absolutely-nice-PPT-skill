@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from contextlib import contextmanager
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -13,6 +15,30 @@ import pymupdf
 from .config import sha256_file
 
 
+@contextmanager
+def _session_fonts(config: dict):
+    """Windows 会话中临时加载已配置字体；仅释放本次增加的引用。"""
+    if os.name != "nt":
+        yield []
+        return
+    import ctypes
+    gdi = ctypes.WinDLL("gdi32", use_last_error=True)
+    for function in (gdi.AddFontResourceExW, gdi.RemoveFontResourceExW):
+        function.argtypes = [ctypes.c_wchar_p, ctypes.c_uint, ctypes.c_void_p]
+        function.restype = ctypes.c_int
+    loaded = []
+    try:
+        for path in dict.fromkeys(str(font["resolved_path"]) for font in config["fonts"].values()):
+            count = gdi.AddFontResourceExW(path, 0, None)
+            if count == 0:
+                raise RuntimeError(f"当前会话无法加载字体: {Path(path).name}")
+            loaded.append((path, count))
+        yield [{"file": Path(path).name, "resources": count} for path, count in loaded]
+    finally:
+        for path, _ in reversed(loaded):
+            gdi.RemoveFontResourceExW(path, 0, None)
+
+
 def render_reference(pptx_path: Path, config: dict, run_dir: Path) -> dict:
     """在独立子目录中导出 PDF 和参考 PNG，拒绝陈旧或无效输出。"""
     soffice = Path(config["soffice"])
@@ -20,7 +46,7 @@ def render_reference(pptx_path: Path, config: dict, run_dir: Path) -> dict:
         raise ValueError("需配置 LibreOffice 直接可执行文件（soffice.com/exe），不使用会改名的包装脚本")
     export_dir = run_dir / ("render-" + uuid.uuid4().hex[:8])
     export_dir.mkdir()
-    with tempfile.TemporaryDirectory(prefix="m1-lo-") as profile:
+    with _session_fonts(config) as font_loads, tempfile.TemporaryDirectory(prefix="m1-lo-") as profile:
         try:
             result = subprocess.run(
                 [str(soffice), "-env:UserInstallation=" + Path(profile).as_uri(), "--headless", "--convert-to", "pdf", "--outdir", str(export_dir), str(pptx_path)],
@@ -44,4 +70,5 @@ def render_reference(pptx_path: Path, config: dict, run_dir: Path) -> dict:
         "pdf": pdf_path.relative_to(run_dir).as_posix(), "reference_png": png_path.relative_to(run_dir).as_posix(),
         "pdf_sha256": sha256_file(pdf_path), "reference_sha256": sha256_file(png_path),
         "rendered_at_utc": datetime.now(timezone.utc).isoformat(), "lo_exit_code": result.returncode,
+        "session_font_loads": font_loads,
     }

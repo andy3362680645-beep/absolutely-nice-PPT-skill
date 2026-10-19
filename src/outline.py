@@ -82,10 +82,30 @@ def load_outline(input_path: str | Path) -> dict:
         cap, floor = text.get("cap_pt"), text.get("floor_pt")
         if not all(isinstance(v, int) and not isinstance(v, bool) for v in (cap, floor)) or not 10 <= floor <= cap <= 120:
             raise ValueError(f"字号范围无效: {text['id']}")
-        if min(text["box_pt"][2:]) <= margin * 2:
+        text_margin = text.get("margin_pt", margin)
+        if not _number(text_margin) or text_margin < 0 or min(text["box_pt"][2:]) <= text_margin * 2:
             raise ValueError(f"文字有效区域为空: {text['id']}")
         if not isinstance(text.get("color"), str) or not re.fullmatch(r"[0-9A-Fa-f]{6}", text["color"]):
             raise ValueError(f"文字颜色无效: {text['id']}")
+        if "fill_color" in text and (not isinstance(text["fill_color"], str) or not re.fullmatch(r"[0-9A-Fa-f]{6}", text["fill_color"])):
+            raise ValueError(f"文字底色无效: {text['id']}")
+        if not isinstance(text.get("align", "left"), str) or text.get("align", "left") not in {"left", "center", "right"}:
+            raise ValueError(f"文字对齐无效: {text['id']}")
+    groups = slide.get("content_groups", {})
+    if not isinstance(groups, dict):
+        raise ValueError("content_groups 必须为对象")
+    text_by_id = {text["id"]: text for text in texts}
+    grouped_ids = set()
+    for group_id, group in groups.items():
+        if not isinstance(group_id, str) or not group_id or not isinstance(group, dict) or not isinstance(group.get("text"), str) or not group["text"].strip():
+            raise ValueError("完整句逻辑组无效")
+        members = group.get("shape_ids")
+        if not isinstance(members, list) or not members or any(not isinstance(key, str) or key not in text_by_id or key in grouped_ids for key in members) or len(set(members)) != len(members):
+            raise ValueError(f"逻辑组成员无效: {group_id}")
+        combined = "".join(text_by_id[key]["text"] for key in members)
+        if re.sub(r"\s+", "", combined) != re.sub(r"\s+", "", group["text"]):
+            raise ValueError(f"逻辑组与完整确认句不一致: {group_id}")
+        grouped_ids.update(members)
     for picture in images:
         if picture.get("role") not in {"background", "illustration"} or not isinstance(picture.get("path"), str) or not picture["path"]:
             raise ValueError(f"图片配置无效: {picture['id']}")

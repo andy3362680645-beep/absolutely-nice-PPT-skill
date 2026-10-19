@@ -12,11 +12,14 @@ import uuid
 from PIL import Image
 from pptx import Presentation
 from pptx.dml.color import RGBColor
+from pptx.enum.text import PP_ALIGN
 from pptx.util import Pt
 
 from .config import project_path, sha256_file
 from .outline import check_assets
 from .text_fit import fit_textframe
+
+ALIGNMENTS = {"left": PP_ALIGN.LEFT, "center": PP_ALIGN.CENTER, "right": PP_ALIGN.RIGHT}
 
 
 def write_json(path: Path, value: dict) -> None:
@@ -62,7 +65,13 @@ def verify_reopened(pptx_path: Path, manifest: dict) -> list[str]:
             if not shape.has_text_frame or normalized(shape.text) != normalized(record["text"]):
                 issues.append(f"editable_text:{key}")
             else:
+                if any(value != Pt(record["margin_pt"]) for value in (shape.text_frame.margin_left, shape.text_frame.margin_right, shape.text_frame.margin_top, shape.text_frame.margin_bottom)):
+                    issues.append(f"text_margin:{key}")
+                if record.get("fill_color") and (shape.fill.type != 1 or str(shape.fill.fore_color.rgb) != record["fill_color"].upper()):
+                    issues.append(f"text_fill:{key}")
                 for paragraph in shape.text_frame.paragraphs:
+                    if "align" in record and paragraph.alignment != ALIGNMENTS[record["align"]]:
+                        issues.append(f"text_alignment:{key}")
                     for run in paragraph.runs:
                         if run.font.name != record["font_name"] or run.font.size != Pt(record["font_size_pt"]):
                             issues.append(f"text_font:{key}")
@@ -113,22 +122,27 @@ def build_slide(outline: dict, config: dict, out_root: Path) -> dict:
         shape = slide.shapes.add_textbox(Pt(x), Pt(y), Pt(w), Pt(h))
         shape.name = text["id"]
         tf = shape.text_frame
-        tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = Pt(config["margin_pt"])
+        margin = text.get("margin_pt", config["margin_pt"])
+        tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = Pt(margin)
+        if "fill_color" in text:
+            shape.fill.solid()
+            shape.fill.fore_color.rgb = RGBColor.from_string(text["fill_color"])
         font = config["fonts"][text["font_key"]]
         size = fit_textframe(shape, text["text"], str(font["resolved_path"]), font["name"], cap_pt=text["cap_pt"], floor_pt=text["floor_pt"], bold=font["bold"])
         if size is None:
             raise ValueError(f"内容超量，请精简: {text['id']}，最低字号 {text['floor_pt']}pt")
         for paragraph in tf.paragraphs:
+            paragraph.alignment = ALIGNMENTS[text.get("align", "left")]
             for run in paragraph.runs:
                 run.font.color.rgb = RGBColor.from_string(text["color"])
         record = _shape_record(shape, text["id"], text["role"], "text", len(records))
-        margin = config["margin_pt"]
         record.update({
             "text": text["text"], "written_text": shape.text,
             "font_key": text["font_key"], "font_name": font["name"], "font_size_pt": size,
             "floor_pt": text["floor_pt"], "bold": font["bold"], "color": text["color"],
             "margin_pt": margin, "effective_box_pt": [x+margin, y+margin, w-2*margin, h-2*margin],
             "font_file_sha256": font["sha256"], "fit_status": "passed",
+            "fill_color": text.get("fill_color"), "align": text.get("align", "left"),
         })
         records.append(record)
     slide.notes_slide.notes_text_frame.text = "\n".join(
@@ -142,7 +156,7 @@ def build_slide(outline: dict, config: dict, out_root: Path) -> dict:
         "input_sha256": outline["_input_sha256"], "canvas": config["canvas"],
         "canvas_emu": [prs.slide_width, prs.slide_height], "pptx_file": pptx_path.name,
         "font_records": {key: {k: v for k, v in font.items() if k != "resolved_path"} for key, font in config["fonts"].items()},
-        "slides": [{"slide_id": source_slide["slide_id"], "slide_index": 1, "shapes": records}],
+        "slides": [{"slide_id": source_slide["slide_id"], "slide_index": 1, "shapes": records, "content_groups": source_slide.get("content_groups", {})}],
     }
     reopened_issues = verify_reopened(pptx_path, manifest)
     if reopened_issues:

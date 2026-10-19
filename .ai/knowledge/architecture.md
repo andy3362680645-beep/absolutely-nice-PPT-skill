@@ -81,6 +81,8 @@ AI 目视检查 ＋ 用户确认 v1 ← 当前停留点
 
 以上为字段节选；完整记录由 builder 同步生成，还包括层顺序、实际换行、字号下限、图片尺寸/alpha、字体及来源哈希。`manifest.py`、自动 diff、多页和整图 v2 PPTX 仍是后续能力。
 
+文字框可选 `fill_color`、`margin_pt`、`align`，用于可编辑数据强调。`slides[].content_groups` 保存完整确认句与有序文字对象 ID，加载输入时核对拼接文案；数据摘要框可以重复强调已有日期/数值，不代替完整句。当前视觉调整版为 13 个文本框、2 张独立图片。
+
 ## 模块依赖原则（自底向上）
 
 - 数据结构（outline / style-params / manifest）→ 工具函数（text_fit / 色板）→ 逻辑（builder / images / diff）→ 渲染（render / checks）→ 入口封装。
@@ -92,6 +94,7 @@ AI 目视检查 ＋ 用户确认 v1 ← 当前停留点
 - 已有运行入口：`python -m src.m1 validate/build/check`，真实命令见 src/README.md。`--schema-only` 只核验结构与字体且不标记 ready。
 - `outline.py` 已实现单页 JSON/图片检查；`config.py` 集中解析路径与字体；`text_fit.py` 已验证极窄框终止、混排和字号下限，并补显式行距、折行与东亚字体。
 - `builder.py` 已生成真实单页 v1；`render.py` 和 `checks.py` 已通过真实导出与内容/字体/几何检查。背景允许与文字叠放，插画按主体安全区检查；自动检测不替代目视检查。
+- Windows 导出时，render.py 临时加载配置中的已授权字体到当前会话，在 LO 子进程退出后释放本次加载引用；不写共享字体目录或安装记录。实际 PDF 字体仍须检查，临时加载成功不等于字体验收通过。
 - 输入/manifest/PPTX 哈希变化会拒绝沿用当前运行；每次 check 重新导出，清除旧确认。超量返回失败，不静默截断。
 - 最终生图采用会话工具参考 v1 导出图重绘；工具接入不在本地 Python 中伪造。只有 spike 重绘证据，正式最终图待 v1 确认后执行。LO 导出不是最终美化交付。
 
