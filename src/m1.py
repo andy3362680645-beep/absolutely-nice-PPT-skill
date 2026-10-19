@@ -34,6 +34,14 @@ def current_run(out_root: Path, outline: dict) -> tuple[dict, Path, dict]:
     return state, run_dir, manifest
 
 
+def _verified_artifact(base: Path, relative: str, digest: str) -> Path:
+    """只读取指定证据目录内、内容哈希一致的现有文件。"""
+    path = (base / relative).resolve()
+    if not path.is_relative_to(base.resolve()) or not path.is_file() or sha256_file(path) != digest:
+        raise ValueError(f"产物证据缺失或已改变: {Path(relative).name}")
+    return path
+
+
 def prepare_image(outline: dict, config: dict, out_root: Path, confirmed: bool) -> dict:
     """记录已取得的人类确认，核对证据后输出会话生图交接包。"""
     from .builder import verify_reopened, write_json
@@ -58,6 +66,31 @@ def prepare_image(outline: dict, config: dict, out_root: Path, confirmed: bool) 
     issues = check_assets(outline) + verify_reopened(run_dir / state["pptx_file"], manifest)
     if issues or any(font["sha256"] != manifest["font_records"][key]["sha256"] for key, font in config["fonts"].items()):
         raise ValueError("素材、字体或对象已改变，请重新 build/check")
+    if state["state"] in {"image_generated", "awaiting_visual_acceptance", "accepted"}:
+        try:
+            handoff = _verified_artifact(out_root, state["image_input"], state["image_input_sha256"])
+            package = json.loads(handoff.read_text(encoding="utf-8"))
+            if any(package[key] != state[key] for key in ("run_id", "input_sha256", "pptx_sha256", "checks_sha256")):
+                raise ValueError("生图交接与当前运行不一致")
+            prompt_path = _verified_artifact(handoff.parent, "redraw-prompt.txt", package["prompt_sha256"])
+            _verified_artifact(handoff.parent, "exact-text.json", package["exact_text_sha256"])
+            final = state["final_image"]
+            _verified_artifact(run_dir, final["file"], final["sha256"])
+            review_path = _verified_artifact(run_dir, final["review_file"], final["review_sha256"])
+            review = json.loads(review_path.read_text(encoding="utf-8"))
+            if review["image_sha256"] != final["sha256"] or review["handoff_sha256"] != state["image_input_sha256"] or review["input_sha256"] != state["input_sha256"] or review["pptx_sha256"] != state["pptx_sha256"] or review["prompt_sha256"] != package["prompt_sha256"]:
+                raise ValueError("最终图核对记录与输入不一致")
+            submitted = _verified_artifact(run_dir, review["submitted_prompt_file"], review["submitted_prompt_sha256"])
+            if submitted.read_text(encoding="utf-8") != prompt_path.read_text(encoding="utf-8").strip():
+                raise ValueError("实际生图提示词与交接不一致")
+            if state["state"] == "accepted" and (final.get("human_accepted") is not True or final.get("content_reviewed") is not True or review.get("content_review") != "passed" or review.get("human_visual_acceptance") != "passed" or review["human_acceptance"]["image_sha256"] != final["sha256"]):
+                raise ValueError("缺少与当前图像绑定的验收记录")
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            state.update(state="failed", evidence_error=str(exc))
+            state.get("final_image", {})["human_accepted"] = False
+            write_json(out_root / "latest.json", state)
+            raise ValueError("生图或验收证据无效，不能沿用旧状态；请恢复证据或重新检查后重绘") from exc
+        return {"passed": True, "state": state["state"], "v1_confirmed": True, "texts": len(outline["slides"][0]["texts"]), "handoff": str(handoff), "prompt": str(prompt_path), "reused": True}
     exact = [{"id": text["id"], "role": text["role"], "text": text["text"]} for text in outline["slides"][0]["texts"]]
     prompt = (
         "Use case: productivity-visual; style-transfer / compositing.\n"
