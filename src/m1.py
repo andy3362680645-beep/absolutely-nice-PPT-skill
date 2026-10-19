@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import datetime, timezone
 
 from pathlib import Path
 
@@ -33,6 +34,72 @@ def current_run(out_root: Path, outline: dict) -> tuple[dict, Path, dict]:
     return state, run_dir, manifest
 
 
+def prepare_image(outline: dict, config: dict, out_root: Path, confirmed: bool) -> dict:
+    """记录已取得的人类确认，核对证据后输出会话生图交接包。"""
+    from .builder import verify_reopened, write_json
+    if not confirmed:
+        raise ValueError("须先取得用户对当前 v1 的确认，再传 --v1-confirmed")
+    state, run_dir, manifest = current_run(out_root, outline)
+    if state["state"] not in {"awaiting_v1_confirmation", "ready_for_image_generation", "image_generated", "awaiting_visual_acceptance", "accepted"}:
+        raise ValueError("当前运行尚未通过 v1 检查")
+    report_path = run_dir / "checks.json"
+    if sha256_file(report_path) != state.get("checks_sha256"):
+        raise ValueError("检测报告已改变，请重新 check")
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    if report.get("passed") is not True or report.get("issues") != [] or report.get("input_sha256") != state["input_sha256"] or report.get("pptx_sha256") != state["pptx_sha256"]:
+        raise ValueError("检测报告未通过或不属于当前 v1")
+    render = state["render"]
+    for field, hash_field in (("pdf", "pdf_sha256"), ("reference_png", "reference_sha256")):
+        path = (run_dir / render[field]).resolve()
+        if not path.is_relative_to(run_dir.resolve()) or sha256_file(path) != render[hash_field]:
+            raise ValueError("辅助导出已改变，请重新 check")
+    if report["pdf_sha256"] != render["pdf_sha256"]:
+        raise ValueError("检测报告对应的 PDF 与参考导出不一致")
+    issues = check_assets(outline) + verify_reopened(run_dir / state["pptx_file"], manifest)
+    if issues or any(font["sha256"] != manifest["font_records"][key]["sha256"] for key, font in config["fonts"].items()):
+        raise ValueError("素材、字体或对象已改变，请重新 build/check")
+    exact = [{"id": text["id"], "role": text["role"], "text": text["text"]} for text in outline["slides"][0]["texts"]]
+    prompt = (
+        "Use case: productivity-visual; style-transfer / compositing.\n"
+        "Asset type: single finished 16:9 presentation slide, opaque background.\n"
+        "将参考图1的可编辑 PPT 页面重新设计并完整绘制为高级、协调的商业品牌年度汇报页。"
+        "图1是已确认的内容、层级和阅读顺序参考，不要逐像素复制普通 PPT 的僵硬排版。"
+        "图2为无字背景风格参考，图3为原创茶饮插画素材参考。\n"
+        "保留暖白纸感、墨色、克制茶绿与茶叶元素；充分留白，精致中文无衬线字形。"
+        "优化字体大小、字重、对齐、节奏及三组内容的图文关系。"
+        "将生硬矩形数据框处理得更精致自然，可使用轻盈纸片质感与细腻笔触，数字醒目且内文清晰。"
+        "茶饮、叶片、背景和自然投影应协调，避免像直接贴上去的素材；画面适合正式投影汇报。\n"
+        "准确文字清单如下，每个 id 的文字均须出现，允许换行和空格变化，禁止改写或漏字；"
+        "正文中近、超、年月、数字、单位、GO、标点和页脚来源必须保留。"
+        "摘要与正文的重复是已确认设计，均须保留，不擅自去重。\n"
+        + json.dumps(exact, ensure_ascii=False, indent=2)
+        + "\n上面的 id、role、字段名、引号只是说明，不得印在画面上。"
+        "不要添加任何额外文字、免责声明、制作说明、品牌 Logo 或水印。"
+        "保持左侧三组内容与右侧茶饮的主关系，可微调几何；不要裁切内容。"
+        "输出一张完整横向 16:9 幻灯片图片，目标 2560×1440；若尺寸不可锁定，优先保持完整 16:9 构图。\n"
+    )
+    package_dir = run_dir / "image-input"
+    package_dir.mkdir(exist_ok=True)
+    write_json(package_dir / "exact-text.json", {"texts": exact, "content_groups": outline["slides"][0].get("content_groups", {})})
+    (package_dir / "redraw-prompt.txt").write_text(prompt, encoding="utf-8")
+    package = {
+        "schema_version": 1, "run_id": state["run_id"], "input_sha256": state["input_sha256"],
+        "pptx_sha256": state["pptx_sha256"], "checks_sha256": state["checks_sha256"],
+        "reference": {"role": "confirmed_v1_content_and_layout", "path_base": "run_dir", "path": render["reference_png"], "sha256": render["reference_sha256"]},
+        "assets": [{"role": shape["role"], "path_base": "project_root", "path": shape["image_path"], "sha256": shape["image_sha256"]} for shape in manifest["slides"][0]["shapes"] if shape["type"] == "picture"],
+        "prompt_sha256": sha256_file(package_dir / "redraw-prompt.txt"), "exact_text_sha256": sha256_file(package_dir / "exact-text.json"),
+        "tool": "session image_gen", "model": "unknown", "output_target": "opaque PNG; native size; 16:9 relative error <=0.5%; no postprocessing",
+    }
+    write_json(package_dir / "handoff.json", package)
+    state["v1_confirmed"] = True
+    state.setdefault("v1_confirmation", {"input_sha256": state["input_sha256"], "pptx_sha256": state["pptx_sha256"], "recorded_at_utc": datetime.now(timezone.utc).isoformat(), "source": "explicit --v1-confirmed after human approval"})
+    if state["state"] == "awaiting_v1_confirmation":
+        state["state"] = "ready_for_image_generation"
+    state.update(image_input=(package_dir / "handoff.json").relative_to(out_root).as_posix(), image_input_sha256=sha256_file(package_dir / "handoff.json"))
+    write_json(out_root / "latest.json", state)
+    return {"passed": True, "state": state["state"], "v1_confirmed": True, "texts": len(exact), "handoff": str(package_dir / "handoff.json"), "prompt": str(package_dir / "redraw-prompt.txt")}
+
+
 def main() -> int:
     """校验输入；退出码 0 成功、2 数据/素材错误、1 环境/运行失败。"""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -47,10 +114,18 @@ def main() -> int:
     check.add_argument("--input", required=True)
     check.add_argument("--out", required=True)
     check.add_argument("--soffice", help="LibreOffice 直接可执行文件路径")
+    prepare = subparsers.add_parser("prepare-image", help="记录已有 v1 确认并准备会话生图输入包")
+    prepare.add_argument("--input", required=True)
+    prepare.add_argument("--out", required=True)
+    prepare.add_argument("--v1-confirmed", action="store_true", help="仅在人类已确认当前 v1 后传入")
     args = parser.parse_args()
     try:
         outline = load_outline(args.input)
         config = load_config(outline)
+        if args.command == "prepare-image":
+            result = prepare_image(outline, config, project_path(args.out), args.v1_confirmed)
+            print(json.dumps(result, ensure_ascii=False))
+            return 0
         if args.command == "build":
             from .builder import build_slide
             result = build_slide(outline, config, project_path(args.out))
@@ -63,7 +138,8 @@ def main() -> int:
             out_root = project_path(args.out)
             state, run_dir, manifest = current_run(out_root, outline)
             state.update(state="checking", v1_confirmed=False)
-            state.pop("checks_sha256", None)
+            for key in ("checks_sha256", "v1_confirmation", "image_input", "image_input_sha256", "final_image"):
+                state.pop(key, None)
             write_json(out_root / "latest.json", state)
             if args.soffice:
                 config["soffice"] = args.soffice

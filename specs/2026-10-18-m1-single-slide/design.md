@@ -363,3 +363,23 @@ CLI 拟使用 python -m src.m1，不要求用户手动在 WPS 制作页面。运
 - 输入 SHA256：`52c0cd18079dc958e9a6e5f626b4d154b58d4179ea12148ca3dee247ac3df835`；PPTX SHA256：`6b2290edbcfd562702b133a28cc07353b080187e7409d182197c5fc084b8d2f2`。旧运行目录保留，仅最新状态指向本版。
 - 负例核查 9 项通过：非法底色/内边距/对齐、删掉限定词、重复/未知组成员，及读回底色/内边距/对齐不一致；旧版 v1 的重开核验仍通过。compileall 通过。
 - 字体已加载不直接作为通过依据，仍以真实 PDF 字体/内容/几何报告为准。latest.json 的 v1_confirmed=false，用户尚未确认新版；阶段 5 未完成。
+
+### 步骤 10：v1 已确认，正式重绘及 AI 初检完成（2026-10-19）
+
+- 人类原话：“可以，后续再通过图片渲染来再做美观一点吧，接下来先进行下一步”。确认对象为 run `20261019T001301Z-b675a7c0` 的 15 元素 v1，未将其当成最终重绘图验收。
+- 实现 `m1.py prepare-image`。真实命令：`.venv/Scripts/python.exe -m src.m1 prepare-image --input specs/2026-10-18-m1-single-slide/m1-input.json --out output/m1-single-slide --v1-confirmed`。
+- 真实输出：passed=true、state=ready_for_image_generation、v1_confirmed=true、texts=13。包内含准确文案、完整句分组、参考与素材角色/路径、各项哈希及实际提示词。
+- 入口负例通过：未确认、报告哈希改变、报告明确失败（即使更新哈希）、参考图改变均被拒绝，且失败前不写交接目录。合法调用通过，重复准备不倒退已有最终图状态；compileall 通过。
+- 补充状态核查：对隔离副本模拟重新 check 失败，返回 1、state=failed，清除旧 v1 确认、生图交接及最终图验收引用；原历史文件保留。生产运行仍为 awaiting_visual_acceptance，没有重复导出或改动已确认 v1。
+- 查看真实参考页、背景和透明插画后调用会话 image_gen；使用保存的完整提示词，没有本地 API 模拟调用。底层型号未知；首次即生成，修复 0 轮。
+- 保存原图：`output/m1-single-slide/runs/20261019T001301Z-b675a7c0/final/slide-01-image-v1.png`；RGB、1672×941，比例误差 0.0531%，符合已确认≤0.5%口径。精确复制，未后处理。
+- 原图哈希 `b50c14eaf8b863dcafe19aaa5aec22bfd2ee751efd723fbf1c427f677e95c8ff`；完整证据 image-review.json。13 项文字/数字/来源逐项目视核对通过；保留正文和摘要，不新增免责声明。
+- 提交工具前仅去掉提示词首尾空白，实际文本另存 image-input/submitted-prompt.txt，哈希记录于 image-review.json；没有更改生成图片。
+- latest.json 当前为 awaiting_visual_acceptance、v1_confirmed=true、content_reviewed=true、human_accepted=false。检查点 E 的技术链路已具备证据，最终人类视觉验收仍待确认，不能标记 accepted。
+
+### 步骤 11～12：流程同步
+
+- 已同步 README.md、src/README.md、product-sop.md、architecture.md 的真实命令、LO 与模型重绘分工、v1 确认与最终图核对、目前未实现的能力。
+- 定点更新 02-feasibility.md、04-coding.md、05-review.md、pitfalls.md，删除“美化必须 HTML”的旧唯一路线断言；区分 v1 自动几何与模型位图目视核对，不冒称 OCR、指定字体或指定底层型号。
+- 这是阶段 5 内的实施说明同步；未提前创建阶段 6 review.md，未推送或合入。最终视觉确认后才能收尾阶段 5 并停下汇报。
+- 文档验证：实际 CLI --help 列出 validate/build/check/prepare-image，prepare-image --help 与文档参数一致；rg 在本次当前运行说明中未找到旧唯一路线断言。检查点 F 的流程同步已完成；检查点 E 的人类最终视觉验收仍待确认。

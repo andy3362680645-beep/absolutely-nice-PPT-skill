@@ -1,6 +1,6 @@
 # 仓库架构（随代码刷新）
 
-> 最后更新：2026-10-19，M1 阶段 5 检查点 D 与步骤 9 通过；正式 v1 等待人类确认，最终整页生图尚未执行。
+> 最后更新：2026-10-19，正式 v1 已获确认；prepare-image 与首次模型整页重绘已执行，AI 内容初检通过，等待最终人类视觉验收。阶段 5 尚未结束。
 > 每次结构性改动后必须更新本文件，随提交一起合入。
 
 ## 目标架构
@@ -17,7 +17,7 @@ PPT_agent/
 ├── src/                   # 代码
 │   ├── text_fit.py        # 中文文本适配（已就位，已实测）
 │   ├── config.py          # M1 路径、字体与运行配置（已实现）
-│   ├── m1.py              # M1 CLI：validate / build / check 已实现
+│   ├── m1.py              # M1 CLI：validate / build / check / prepare-image
 │   ├── outline.py         # 大纲读取与校验
 │   ├── style.py           # 风格参数、色板提取
 │   ├── images.py          # 生图调度与素材管理
@@ -46,11 +46,11 @@ build → builder.py → text_fit.py
 check → render.py（LO 导出辅助 PDF/参考 PNG）
       → checks.py（原生对象、内容、字体、几何）→ checks.json
         ▼
-AI 目视检查 ＋ 用户确认 v1 ← 当前停留点
+AI 目视检查 ＋ 用户确认 v1
         ▼
-待实现：prepare-image 交接包 → 会话生图工具参考 v1 整页重绘
+prepare-image 交接包 → 会话生图工具参考 v1 整页重绘
         ▼
-待完成：最终 PNG 逐字/数字核对、AI 与人类视觉验收
+最终 PNG 逐字/数字与 AI 初检通过 → 待人类视觉验收（当前停留点）
 ```
 
 ## manifest.json（M1 已实现的最小结构）
@@ -91,12 +91,13 @@ AI 目视检查 ＋ 用户确认 v1 ← 当前停留点
 
 ## 当前状态
 
-- 已有运行入口：`python -m src.m1 validate/build/check`，真实命令见 src/README.md。`--schema-only` 只核验结构与字体且不标记 ready。
+- 已有运行入口：`python -m src.m1 validate/build/check/prepare-image`，真实命令见 src/README.md。`--schema-only` 只核验结构与字体且不标记 ready。
 - `outline.py` 已实现单页 JSON/图片检查；`config.py` 集中解析路径与字体；`text_fit.py` 已验证极窄框终止、混排和字号下限，并补显式行距、折行与东亚字体。
 - `builder.py` 已生成真实单页 v1；`render.py` 和 `checks.py` 已通过真实导出与内容/字体/几何检查。背景允许与文字叠放，插画按主体安全区检查；自动检测不替代目视检查。
 - Windows 导出时，render.py 临时加载配置中的已授权字体到当前会话，在 LO 子进程退出后释放本次加载引用；不写共享字体目录或安装记录。实际 PDF 字体仍须检查，临时加载成功不等于字体验收通过。
 - 输入/manifest/PPTX 哈希变化会拒绝沿用当前运行；每次 check 重新导出，清除旧确认。超量返回失败，不静默截断。
-- 最终生图采用会话工具参考 v1 导出图重绘；工具接入不在本地 Python 中伪造。只有 spike 重绘证据，正式最终图待 v1 确认后执行。LO 导出不是最终美化交付。
+- prepare-image 核对已确认 v1、检测/辅助导出/素材/字体哈希，输出 image-input/handoff.json、exact-text.json、redraw-prompt.txt。复跑不倒退已有最终图状态；输入变更失效原交接。
+- 最终生图采用会话工具参考 v1 导出图重绘；工具接入不在本地 Python 中伪造。正式原图与 image-review.json 已保存于当前 run，latest.json 为 awaiting_visual_acceptance；AI 逐项核对通过，人类验收仍待确认。LO 导出不是最终美化交付。
 
 - [x] 协作规范、SOP、模板、知识库骨架
 - [x] text_fit.py（中文适配三道防线）
@@ -104,5 +105,5 @@ AI 目视检查 ＋ 用户确认 v1 ← 当前停留点
 - [ ] M2 完整 v1
 - [ ] M3 改动闭环
 - [ ] M4 风格参数提取
-- [ ] 后续渲染扩展（原 HTML 规划需按已确认生图路线继续同步）
+- [ ] M5 展示渲染完善（生图一致性与整图封装等）
 - [ ] M6 skill/Agent 封装
