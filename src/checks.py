@@ -22,10 +22,15 @@ def _font_key(name: str) -> str:
 
 
 def audit_page(page, manifest: dict, tolerance: float = 1) -> dict:
+    """保留 M1 的单页清单调用方式。"""
+    return audit_slide(page, manifest["slides"][0], manifest["font_records"], tolerance)
+
+
+def audit_slide(page, slide_record: dict, font_records: dict, tolerance: float = 1) -> dict:
     """按有效文字区分配实际字符，报告漏文、歧义、字体替换和几何问题。"""
     pymupdf.TOOLS.set_small_glyph_heights(True)
     issues = []
-    shapes = manifest["slides"][0]["shapes"]
+    shapes = slide_record["shapes"]
     texts = [shape for shape in shapes if shape["type"] == "text"]
     rectangles = [_rect(shape["effective_box_pt"]) for shape in texts]
     for i, rect in enumerate(rectangles):
@@ -64,7 +69,7 @@ def audit_page(page, manifest: dict, tolerance: float = 1) -> dict:
                         issues.append({"code": "glyph_out_of_page", "shape": record["id"]})
                     if span["size"] < record["floor_pt"] - 0.1 or abs(span["size"] - record["font_size_pt"]) > 0.3:
                         issues.append({"code": "font_size_mismatch", "shape": record["id"], "observed": span["size"]})
-                    font = manifest["font_records"][record["font_key"]]
+                    font = font_records[record["font_key"]]
                     if _font_key(span["font"]) != _font_key(Path(font["path"]).stem):
                         issues.append({"code": "font_substitution", "shape": record["id"], "observed": span["font"]})
     results = []
@@ -99,3 +104,41 @@ def check_v1(pptx_path: Path, pdf_path: Path, manifest: dict, config: dict) -> d
         "checked_at_utc": datetime.now(timezone.utc).isoformat(),
         "visual_review": "pending", "v1_confirmation": "pending",
     }
+
+
+def check_deck_v1(pptx_path: Path, pdf_path: Path, manifest: dict, config: dict) -> dict:
+    """核对每一页及整套一致性；缺页也返回结构完整的失败报告。"""
+    records = manifest["slides"]
+    issues, pages = [], []
+    for detail in verify_reopened(pptx_path, manifest):
+        issue = {"code": "pptx_object_mismatch", "detail": detail}
+        if detail.startswith("page="):
+            index = int(detail.partition(":")[0][5:])
+            issue.update(slide_index=index, slide_id=records[index-1]["slide_id"])
+        issues.append(issue)
+    for key, font in config["fonts"].items():
+        if manifest["font_records"].get(key, {}).get("sha256") != font["sha256"]:
+            issues.append({"code": "font_source_changed", "font": key})
+    with pymupdf.open(pdf_path) as doc:
+        if len(doc) != len(records):
+            issues.append({"code": "pdf_page_count", "expected": len(records), "observed": len(doc)})
+        for index, record in enumerate(records, 1):
+            identity = {"slide_index": index, "slide_id": record["slide_id"]}
+            page_issues = [item for item in issues if item.get("slide_index") == index]
+            if index > len(doc):
+                audit = {"texts": [], "pdf_fonts": []}
+                page_issues.append({"code": "pdf_page_missing", **identity})
+            else:
+                page = doc[index-1]
+                if abs(page.rect.width-config["canvas"]["width_pt"]) > .1 or abs(page.rect.height-config["canvas"]["height_pt"]) > .1:
+                    page_issues.append({"code": "pdf_canvas_mismatch", **identity})
+                audit = audit_slide(page, record, manifest["font_records"], config["geometry_tolerance_pt"])
+                page_issues.extend({**item, **identity} for item in audit["issues"])
+            issues.extend(item for item in page_issues if item not in issues)
+            pages.append({**identity, "passed": not page_issues, "shapes": len(record["shapes"]),
+                          "issues": page_issues, "texts": audit["texts"], "pdf_fonts": audit["pdf_fonts"]})
+    return {"passed": not issues, "issues": issues, "slide_count": len(records), "slides": pages,
+            "shapes": sum(len(page["shapes"]) for page in records),
+            "input_sha256": manifest["input_sha256"], "pptx_sha256": sha256_file(pptx_path),
+            "pdf_sha256": sha256_file(pdf_path), "checked_at_utc": datetime.now(timezone.utc).isoformat(),
+            "visual_review": "pending", "v1_confirmation": "pending"}

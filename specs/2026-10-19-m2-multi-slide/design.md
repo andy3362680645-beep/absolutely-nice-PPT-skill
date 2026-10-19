@@ -297,3 +297,12 @@ M2 `manifest.json` 使用 `schema_version=2`，保留原有整套输入、PPT、
 - 验证脚本 `--case render` 退出 0，`passed=true, slides=2, distinct_reference_images=true, m1_contract_preserved=true`；证据 `output/m2-multi-slide/spike/render-5ea39809a7/result.json`。
 - 已用正式构建/导出接口实际生成两页 PDF 与各自参考图，核对页序、图像与哈希；同时在 M2 隔离目录验证旧 M1 单页导出仍为 reference.png 和旧字段。无效 LO 路径被拒绝。
 - 测试失败修复轮次：0。逐页自动检查与 M2 命令入口仍待后续切片。
+
+### C · 逐页检查、命令与证据防护（通过）
+
+- 验证脚本 `--case audit` 退出 0，`passed=true, slides=2, positive_issues=0, negative_cases=6`；证据 `output/m2-multi-slide/spike/audit-1d9849e914/result.json`。
+- 正式逐页检查可发现第二页错文、框溢出、碰撞、字体不符、PDF 页序交换和缺页；第二页局部问题不误记为第一页失败，整套仍明确失败。缺页报告保留完整结构。
+- 验证脚本 `--case cli` 退出 0，`passed=true, slides=2, negative_cases=10, recheck_clears_confirmation=true`；证据 `output/m2-multi-slide/spike/cli-6512f5f01d/result.json`。
+- 真实子进程跑通 validate/build/check。十项负例覆盖输入/PPT/清单/来源记录/报告/参考图变化、运行目录越界、M1 输出目录保护、第二页缺图，以及第二页碰撞导致整套检查退出 2。重新 check 使用新导出并清除隔离测试中的旧确认引用。
+- `python -m src.m2 --help`、`compileall -q src` 和 `git diff --check` 均退出 0。help 首次检查发现 Windows 中文编码乱码，已在 M2 主入口明确 UTF-8，复查中文显示正常；该问题修复 1 轮，不改 M1。
+- 尚未进行五页正式内容、素材或成品验收；完整 M1 隔离回归与使用说明仍按步骤 11 执行。

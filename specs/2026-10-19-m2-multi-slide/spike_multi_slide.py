@@ -5,7 +5,9 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -264,10 +266,132 @@ def render_case(run):
     return {"passed": True, "case": "render", "slides": 2, "distinct_reference_images": True, "m1_contract_preserved": True}
 
 
+def audit_case(run):
+    """整套检测覆盖错文、溢出、碰撞、字体、交换页及缺页。"""
+    from src.checks import check_deck_v1
+    from src.render import render_deck_reference
+    _, _, config, _, version, manifest, _ = built_fixture(run)
+    pptx = version / manifest["pptx_file"]
+    render = render_deck_reference(pptx, config, version, manifest["slides"])
+    pdf = version / render["pdf"]
+    report = check_deck_v1(pptx, pdf, manifest, config)
+    assert report["passed"], report["issues"]
+    negatives = {}
+    for name in ("second_text", "second_overflow", "second_collision", "second_font"):
+        bad = copy.deepcopy(manifest)
+        texts = [item for item in bad["slides"][1]["shapes"] if item["type"] == "text"]
+        if name == "second_text":
+            texts[0]["text"] += "故意漏文"
+        elif name == "second_overflow":
+            texts[0]["effective_box_pt"][3] = 8
+        elif name == "second_collision":
+            texts[1]["effective_box_pt"] = list(texts[0]["effective_box_pt"])
+        else:
+            bad["font_records"]["fake"] = {**bad["font_records"]["regular"], "path": "fonts/Wrong-Regular.otf"}
+            texts[1]["font_key"] = "fake"
+        failed = check_deck_v1(pptx, pdf, bad, config)
+        assert not failed["passed"] and failed["slides"][0]["passed"], (name, failed)
+        assert any(item.get("slide_index") == 2 for item in failed["issues"])
+        negatives[name] = failed["issues"]
+    for name, selection in (("missing_page", [0]), ("swapped_pdf_pages", [1, 0])):
+        changed = run / (name + ".pdf")
+        with pymupdf.open(pdf) as doc:
+            doc.select(selection)
+            doc.save(changed)
+        failed = check_deck_v1(pptx, changed, manifest, config)
+        assert not failed["passed"] and len(failed["slides"]) == 2
+        if name == "missing_page":
+            assert failed["slides"][1]["issues"][0]["code"] == "pdf_page_missing"
+        negatives[name] = failed["issues"]
+    save_json(run / "result.json", {"passed": True, "case": "audit", "positive": report, "negative_cases": negatives})
+    return {"passed": True, "case": "audit", "slides": 2, "positive_issues": 0, "negative_cases": len(negatives)}
+
+
+def cli_call(command, input_path, out=None, expected=0, extra=()):
+    """以真实子进程运行入口，核对退出码并保留机器可读结果。"""
+    args = [sys.executable, "-m", "src.m2", command, "--input", str(input_path)]
+    if out is not None:
+        args += ["--out", str(out)]
+    result = subprocess.run(args + list(extra), cwd=ROOT, capture_output=True, text=True, encoding="utf-8",
+                            env={**os.environ, "PYTHONIOENCODING": "utf-8"}, timeout=60)
+    assert result.returncode == expected, (args, result.returncode, result.stdout, result.stderr)
+    return json.loads((result.stdout or result.stderr).strip().splitlines()[-1])
+
+
+def cli_case(run):
+    """真实三命令、重新检查取消确认、九类证据防护和局部失败汇总。"""
+    path, _ = fixture(run)
+    root = run / "cli-output"
+    assert cli_call("validate", path)["ready"]
+    assert not cli_call("validate", path, extra=("--schema-only",))["ready"]
+    built = cli_call("build", path, root)
+    first = cli_call("check", path, root)
+    assert first["passed"] and first["slides"] == 2
+    state_path = root / "latest.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    # 人类确认字段只作为隔离测试夹具，不表示真实人类已批准页面。
+    state.update(v1_confirmed=True, v1_confirmation={"source": "internal-test-fixture"})
+    save_json(state_path, state)
+    second = cli_call("check", path, root)
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    assert second["references"] != first["references"]
+    assert not state["v1_confirmed"] and "v1_confirmation" not in state
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    provenance = ROOT / raw["asset_source_record"]
+    original_provenance = provenance.read_bytes()
+    negatives = {}
+    for name in ("input", "pptx", "manifest", "provenance", "checks", "reference", "run_directory"):
+        target = run / ("bad-" + name)
+        shutil.copytree(root, target)
+        state = json.loads((target / "latest.json").read_text(encoding="utf-8"))
+        version = target / state["run_dir"]
+        input_path = path
+        if name == "input":
+            changed = copy.deepcopy(raw)
+            changed["slides"][1]["texts"][0]["text"] += "真实内容变化"
+            input_path = run / "changed-input.json"
+            save_json(input_path, changed)
+        elif name in {"pptx", "manifest", "checks", "reference", "provenance"}:
+            artifact = {"pptx": version / state["pptx_file"], "manifest": version / "manifest.json",
+                        "checks": version / "checks.json", "reference": version / state["render"]["pages"][1]["reference_png"],
+                        "provenance": provenance}[name]
+            artifact.write_bytes(artifact.read_bytes() + b"\n")
+        else:
+            state["run_dir"] = "../outside"
+            save_json(target / "latest.json", state)
+        try:
+            failure = cli_call("check", input_path, target, expected=2)
+            failed_state = json.loads((target / "latest.json").read_text(encoding="utf-8"))
+            assert not failure["passed"] and failed_state["state"] == "failed" and not failed_state["v1_confirmed"]
+            negatives[name] = failure
+        finally:
+            provenance.write_bytes(original_provenance)
+    negatives["m1_output_protected"] = cli_call("build", path, ROOT / "output/m1-single-slide", expected=2)
+    missing = copy.deepcopy(raw)
+    missing["slides"][1]["images"][1]["path"] = (run / "missing.png").relative_to(ROOT).as_posix()
+    missing_path = run / "missing-input.json"
+    save_json(missing_path, missing)
+    missing_result = cli_call("validate", missing_path, expected=2)
+    assert any("page=2:slide-02" in x for x in missing_result["issues"])
+    negatives["second_page_missing_image"] = missing_result
+    collision = copy.deepcopy(raw)
+    collision["slides"][1]["texts"][1]["box_pt"] = list(collision["slides"][1]["texts"][0]["box_pt"])
+    collision_path = run / "collision-input.json"
+    save_json(collision_path, collision)
+    failed_root = run / "collision-output"
+    cli_call("build", collision_path, failed_root)
+    failed = cli_call("check", collision_path, failed_root, expected=2)
+    assert failed["pages"][0]["passed"] and not failed["pages"][1]["passed"] and failed["state"] == "failed"
+    negatives["second_page_collision"] = failed
+    save_json(run / "result.json", {"passed": True, "case": "cli", "build": built, "first_check": first,
+                                    "second_check": second, "negative_cases": negatives})
+    return {"passed": True, "case": "cli", "slides": 2, "negative_cases": len(negatives), "recheck_clears_confirmation": True}
+
+
 def main():
     """只提供已经实现的验证分支；失败以非零退出。"""
     parser = argparse.ArgumentParser(description=__doc__)
-    cases = {"probe": probe, "schema": schema_case, "build": build_case, "render": render_case}
+    cases = {"probe": probe, "schema": schema_case, "build": build_case, "render": render_case, "audit": audit_case, "cli": cli_case}
     parser.add_argument("--case", choices=list(cases), required=True)
     args = parser.parse_args()
     run = ROOT / "output/m2-multi-slide/spike" / (args.case + "-" + uuid.uuid4().hex[:10])
