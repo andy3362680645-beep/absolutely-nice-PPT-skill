@@ -95,7 +95,7 @@ prepare-image 交接包 → 会话生图工具参考 v1 整页重绘
 - `outline.py` 已实现单页 JSON/图片检查；`config.py` 集中解析路径与字体；`text_fit.py` 已验证极窄框终止、混排和字号下限，并补显式行距、折行与东亚字体。
 - `builder.py` 已生成真实单页 v1；`render.py` 和 `checks.py` 已通过真实导出与内容/字体/几何检查。背景允许与文字叠放，插画按主体安全区检查；自动检测不替代目视检查。
 - Windows 导出时，render.py 临时加载配置中的已授权字体到当前会话，在 LO 子进程退出后释放本次加载引用；不写共享字体目录或安装记录。实际 PDF 字体仍须检查，临时加载成功不等于字体验收通过。
-- 输入/manifest/PPTX 哈希变化会拒绝沿用当前运行；每次 check 重新导出，清除旧确认。超量返回失败，不静默截断。
+- 输入/manifest/PPTX 哈希变化会拒绝沿用当前运行；执行源仅统一 LF/CRLF 换行，实际内容变化仍失效，其他产物按原始字节核对。每次 check 重新导出，清除旧确认。超量返回失败，不静默截断。
 - prepare-image 核对已确认 v1、检测/辅助导出/素材/字体哈希，输出 image-input/handoff.json、exact-text.json、redraw-prompt.txt。生成最终图后，复跑须再核对原交接、文字/提示词、最终图及绑定验收，只读复用；证据变化则明确失败，不沿用旧 accepted。输入变更失效原交接。
 - 最终生图采用会话工具参考 v1 导出图重绘；工具接入不在本地 Python 中伪造。正式原图与 image-review.json 已保存于当前 run，latest.json 为 accepted；AI 逐项核对及本图人类视觉确认均已记录。LO 导出不是最终美化交付。
 
