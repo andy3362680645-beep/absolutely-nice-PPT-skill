@@ -1,6 +1,6 @@
 # 技术方案 · M1 单页生图展示链路
 
-> 2026-10-18，方案已获人类确认，进入阶段 5；先环境与 spike，再正式模块。验证结果据实回填。
+> 方案于 2026-10-18 获确认；2026-10-19 阶段 5 检查点 A～F 完成，正式 v1 与模型图已获人类视觉确认。阶段 6 三类自审通过，人类已批准并明确授权本次本地合并；下文保留历史记录，以末尾状态、review.md 与 Git 历史为准。
 > 依据：spec.md 阶段 1～3，以及人类“认可范围，继续”。此回复认可勘察范围，不等于已确认本方案。
 
 ## 方案概述
@@ -47,6 +47,14 @@ JSON 字段契约（这里只定义字段，不提供实现）：
 内容固定为已确认的标题、副标题、三组要点和页脚“数据来源：北京日报客户端，2026-01-23。”。“近”“超”、年份、GO 和数字必须保留。正文如需分成小标题/段落/大数字多个形状，逐项记录在同一逻辑组内，仍以完整确认句为核对依据。
 
 M1 只支持轴对齐、无旋转的文字框及图片；不做表格/图表对象、嵌套组合、富文本混排或任意母版解析。装饰优先包含在 AI 背景/插画内，减少无关形状。
+
+#### 2026-10-19：v1 文字视觉调整
+
+人类反馈“文字部分纯文字可能有点素”。在上述已批准的原生文字框与大数字拆分范围内，调整日期/数字的大小、字重与茶绿色，给关键数据文字框设置浅茶绿填充与适当内边距。继续保留三组内容及右侧独立插画，不新增形状类型、外部素材或渲染依赖，不将此反馈视为 v1 确认。
+
+- text 的可选字段 `fill_color` 为六位色值、`margin_pt` 为非负内边距；`align` 按原契约支持 left/center/right。默认仍为无填充、全局内边距、左对齐，所有中文继续经 text_fit。
+- 拆分的正文在 slide.content_groups 中保存原完整句与有序 shape_ids；加载时核对拼接后仅忽略空白仍逐字一致，避免突出数字后丢失“近”“超”或单位。manifest 保留逻辑组与完整句。
+- 本轮涉及原方案范围内的 outline.py、builder.py、输入/大纲/风格快照及开发记录；原生填充、对齐与内边距须读回核对。导出期间已复现的会话字体未加载问题在原范围 render.py 内修复。重新 build/check 并查看实际参考图后，再交人类确认。
 
 ### 最小 manifest（建议纳入）
 
@@ -279,3 +287,136 @@ CLI 拟使用 python -m src.m1，不要求用户手动在 WPS 制作页面。运
 - [官方 SIL OFL 1.1 许可](https://github.com/adobe-fonts/source-han-sans/blob/master/LICENSE.txt)：字体使用许可依据；实际下载与证据登记尚未执行。
 - [python-pptx 文本对象](https://python-pptx.readthedocs.io/en/latest/api/text.html)：文本框/段落支持换行、行距与字体设置；不代替本机 LO 实测。
 - [PyMuPDF TextPage](https://pymupdf.readthedocs.io/en/latest/textpage.html)：rawdict 提供逐字符内容与几何数据，可用于设计上述检查；不是现成的 PPT 溢出检测器。
+
+## 阶段 5 实际执行记录（持续更新）
+
+### 检查点 A：通过
+
+- 隔离环境：Python 3.12.14；python-pptx 1.0.2、Pillow 13.0.0、PyMuPDF 1.28.2。未改应用共享 Python。
+- 官方思源静态字体 2.005R 已下载并登记，用户级字体已安装，许可证原文及忠实渲染留证见 fonts/README.md。
+- `spike_text_fit.py --probe-old`：真实复现极窄框 2 秒超时。
+- 修复后 `spike_text_fit.py`：8 项断行/非法宽度检查＋4 项字号/超量检查通过。
+- `src/text_fit.py` 保留 None 失败语义；新增不可前进保护、明确软换行/行距及东亚字体；根据实际 LO 混排差异保留 10% 横向余量。
+- 首次基线提交：`2a84b12`，在 feature 分支创建，没有推送。
+
+### 检查点 B：通过最小验证，正式产物未验收
+
+- `spike_render.py --out output/m1-single-slide/spike` 最新结果：`passed=true, slides=1, shapes=10, geometry_issues=[]`。
+- 实际 PDF 字体：SourceHanSansSC-Regular / Bold；漏文、越界、碰撞负例均能被拒绝。
+- 第一次失败为字体替换；修复 1 使用系统实际家族别名“思源黑体”，字体检查通过但出现行高度量框误报。
+- 修复 2：使用 PyMuPDF 的字号高度字框与原有 1pt 容差，不将字体行高框等同可见字框；同时处理混排二次折行的横向余量。本轮通过；没有超过 3 轮修复。
+- 输出目录：output/m1-single-slide/spike/3f54457df349/；参考 PNG 为 2560×1440。
+- 真实参考图经会话工具重绘为 redraw.png，1672×941，比例符合已批准口径；逐项目视核对准确文案与来源页脚一致。证据和提示词见 image-redraw-checklist.md 引用的运行目录。
+- 该重绘是最小试验，尚无人类单独验收；不冒充正式 v1 或最终展示图。
+- 额外 OOXML 技能验证工具因其 Python 环境缺少 defusedxml 未运行，未擅自引入新依赖；不声称 XSD 已通过。
+
+### 检查点 C：通过，等待正式素材
+
+- 已落实 deck-outline.md、style-params.md、m1-input.json；JSON 执行源哈希为 `43b940ee92c82081b81b8ba4d8ab18d0447e0452a5a9c52807f174eb698d839d`。
+- `python -m src.m1 validate ... --schema-only`：valid_schema=true，ready=false，退出码 0。
+- 去掉 --schema-only：明确报告独立背景/插画尚未生成，退出码 2；未把缺图状态称为 ready。
+- 重复 ID、负坐标、字号低于 10、来源缺失四类负例均返回 2；compileall 通过。
+- 已补 config.py、outline.py、m1.py 最小验证入口，未写 builder/render/checks 正式模块。
+
+### 发现但不碰
+
+- .ai/templates/review.md 原有第 26 行尾随空格；基线空白核查记录该既有问题，未修改范围外模板。后续新增/修改文件保持正常 diff --check。
+- Tabbit 路由不可用（exit 69），未切换控制其他浏览器；授权证据采用保存的官方许可证原文渲染并如实标注。
+
+### 检查点 D：通过（2026-10-19）
+
+- 人类对独立背景与透明插画回复“可以”，素材确认已记录；完整输入校验为 valid_schema=true、ready=true、issues=[]。真实尺寸、alpha、提示词和哈希见 assets/m1-single-slide/source-record.json，文件未入库。
+- 已实现 builder.py 与 build 入口，所有文本走 text_fit；背景与插画独立。最小 manifest 记录输入/素材/字体哈希、原生对象 ID、层次、坐标及实际字号，PPTX 保存后重开核对。
+- 真实命令：`.venv/Scripts/python.exe -m src.m1 build --input specs/2026-10-18-m1-single-slide/m1-input.json --out output/m1-single-slide`。
+- 最新输出：passed=true、slides=1、shapes=11；标题 40pt、副标题 26pt、小标题 24pt、正文 20pt、页脚 12pt。
+- 运行目录：`output/m1-single-slide/runs/20261018T163215Z-57aaf205/`。文件：`喜茶 2025 年度营销回顾_v1_可编辑.pptx`、manifest.json。
+- 初版视觉发现词语拆行和孤立句号；第一轮修复在断行工具增加标点随前字下移保护，并只在输入正文调整显式语义换行。文案字符、数字及限定词不变；修复后重新 build/check 通过，无第二轮修复。
+- 新执行源哈希：`c0ee451939f629bd38ce301cd6a3678e8345efb7568dc5ac428862ecfa373435`。检查点 C 的旧哈希保留为历史记录，旧产物未沿用为最新确认。
+
+### 步骤 9：自动检测与 AI 视觉初检通过，检查点 E 待完成
+
+- 实现 render.py、checks.py 与 check 入口，实际命令：`.venv/Scripts/python.exe -m src.m1 check --input specs/2026-10-18-m1-single-slide/m1-input.json --out output/m1-single-slide`。
+- 真实输出：passed=true、state=awaiting_v1_confirmation、issues=[]、slides=1、shapes=11。
+- 实际 PDF 字体为 BAAAAA+SourceHanSansSC-Bold、CAAAAA+SourceHanSansSC-Regular，无替换；9 个文本块与确认文案逐项一致（忽略布局空白）。
+- 辅助 PDF 与 2560×1440 参考图位于本次运行 `render-898dea60/`；报告 checks.json。AI 已查看参考图，未见文字裁切、孤立句号、内容遮挡或“喜茶”“提交”拆行。
+- 负例实测：正文 2000 个“茶”在最低字号仍超量，明确失败且不写成功状态/PPTX；检测能拒绝漏文、文本碰撞、文本/插画主体碰撞；改变输入哈希拒绝沿用旧运行。
+- 验证扩展：style=[]、canvas=null、schema_version=true、title=123 四类非法结构返回退出码 2 与 JSON 错误，无 traceback；真实 validate 返回 ready=true。
+- `.venv/Scripts/python.exe specs/2026-10-18-m1-single-slide/spike_text_fit.py`：修复后 9 项断行/非法宽度检查＋4 项字号/超量检查通过；compileall 与 git diff --check 通过。
+- checks.json 中 visual_review/v1_confirmation 仍为 pending：自动生成的报告不代替此处 AI 初检记录或人类确认。latest.json 的 v1_confirmed=false；未执行最终重绘。
+
+### 后续
+
+- 当前停留步骤 9 后的人类 v1 检查点。按步骤 10 与产品 SOP“用户确认后进入 v2”，先交付实际 v1 及预览供检查；不能把素材确认当成 v1 确认。
+- 用户确认当前 v1 后，继续 prepare-image、正式整页生图与核对，再执行步骤 11～12 的整体流程文档同步。当前已随结构改动同步 src/README.md、architecture.md，登记已复现的文本问题。
+- 已提交：检查点 A/基线 2a84b12；检查点 B 27c4a02；检查点 C b65d427；素材状态记录 4ba86bf。作者身份按用户提供信息仅配置本仓库，没有推送或合入。
+- 阶段 5 未完成；不得进入阶段 6 或宣称 M1 已完成。
+
+### v1 文字视觉调整检查点（2026-10-19）：通过，等待新版确认
+
+- 用户反馈“文字部分纯文字可能有点素”，随后明确“继续任务”。保留原生文字与独立素材路径，未推进最终整页生图。
+- 三个数据摘要使用可编辑浅茶绿文字框：2025.11、超 100 万份、近 30 款；完整确认句仍在其下，第三组“超 500 万份。”单独突出。content_groups 对照原完整句，不删除限定词、标点或来源。
+- 首次调整的预览中大标点不自然，进行 1 轮版式修复：摘要只显示日期/数据，标点保留在完整说明中。没有增加未经来源支持的事实。
+- 另有 1 次真实导出未过字体检查；确认原字体文件和注册记录存在但当前会话未枚举，临时加载后实际导出通过。此修复已写入 render.py，并在 LO 退出后释放本次引用；未重装字体、未写共享目录。
+- 最新真实 build：passed=true、run_id=20261019T001301Z-b675a7c0、slides=1、shapes=15（13 个原生文字框＋2 张图片）。
+- 最新真实 check：passed=true、state=awaiting_v1_confirmation、issues=[]，实际字体 SourceHanSansSC-Regular/Bold。参考图 `output/m1-single-slide/runs/20261019T001301Z-b675a7c0/render-f1c51121/reference.png`；2560×1440。
+- AI 已查看本参考图，摘要与说明清晰、无文字裁切/遮挡；保留此前字体、来源、数字和近/超限定词，未新增免责尾句。
+- 输入 SHA256：`52c0cd18079dc958e9a6e5f626b4d154b58d4179ea12148ca3dee247ac3df835`；PPTX SHA256：`6b2290edbcfd562702b133a28cc07353b080187e7409d182197c5fc084b8d2f2`。旧运行目录保留，仅最新状态指向本版。
+- 负例核查 9 项通过：非法底色/内边距/对齐、删掉限定词、重复/未知组成员，及读回底色/内边距/对齐不一致；旧版 v1 的重开核验仍通过。compileall 通过。
+- 字体已加载不直接作为通过依据，仍以真实 PDF 字体/内容/几何报告为准。latest.json 的 v1_confirmed=false，用户尚未确认新版；阶段 5 未完成。
+
+### 步骤 10：v1 已确认，正式重绘及 AI 初检完成（2026-10-19）
+
+- 人类原话：“可以，后续再通过图片渲染来再做美观一点吧，接下来先进行下一步”。确认对象为 run `20261019T001301Z-b675a7c0` 的 15 元素 v1，未将其当成最终重绘图验收。
+- 实现 `m1.py prepare-image`。真实命令：`.venv/Scripts/python.exe -m src.m1 prepare-image --input specs/2026-10-18-m1-single-slide/m1-input.json --out output/m1-single-slide --v1-confirmed`。
+- 真实输出：passed=true、state=ready_for_image_generation、v1_confirmed=true、texts=13。包内含准确文案、完整句分组、参考与素材角色/路径、各项哈希及实际提示词。
+- 入口负例通过：未确认、报告哈希改变、报告明确失败（即使更新哈希）、参考图改变均被拒绝，且失败前不写交接目录。合法调用通过，重复准备不倒退已有最终图状态；compileall 通过。
+- 补充状态核查：对隔离副本模拟重新 check 失败，返回 1、state=failed，清除旧 v1 确认、生图交接及最终图验收引用；原历史文件保留。生产运行仍为 awaiting_visual_acceptance，没有重复导出或改动已确认 v1。
+- 查看真实参考页、背景和透明插画后调用会话 image_gen；使用保存的完整提示词，没有本地 API 模拟调用。底层型号未知；首次即生成，修复 0 轮。
+- 保存原图：`output/m1-single-slide/runs/20261019T001301Z-b675a7c0/final/slide-01-image-v1.png`；RGB、1672×941，比例误差 0.0531%，符合已确认≤0.5%口径。精确复制，未后处理。
+- 原图哈希 `b50c14eaf8b863dcafe19aaa5aec22bfd2ee751efd723fbf1c427f677e95c8ff`；完整证据 image-review.json。13 项文字/数字/来源逐项目视核对通过；保留正文和摘要，不新增免责声明。
+- 提交工具前仅去掉提示词首尾空白，实际文本另存 image-input/submitted-prompt.txt，哈希记录于 image-review.json；没有更改生成图片。
+- latest.json 当前为 awaiting_visual_acceptance、v1_confirmed=true、content_reviewed=true、human_accepted=false。检查点 E 的技术链路已具备证据，最终人类视觉验收仍待确认，不能标记 accepted。
+
+### 步骤 11～12：流程同步
+
+- 已同步 README.md、src/README.md、product-sop.md、architecture.md 的真实命令、LO 与模型重绘分工、v1 确认与最终图核对、目前未实现的能力。
+- 定点更新 02-feasibility.md、04-coding.md、05-review.md、pitfalls.md，删除“美化必须 HTML”的旧唯一路线断言；区分 v1 自动几何与模型位图目视核对，不冒称 OCR、指定字体或指定底层型号。
+- 这是阶段 5 内的实施说明同步；未提前创建阶段 6 review.md，未推送或合入。最终视觉确认后才能收尾阶段 5 并停下汇报。
+- 文档验证：实际 CLI --help 列出 validate/build/check/prepare-image，prepare-image --help 与文档参数一致；rg 在本次当前运行说明中未找到旧唯一路线断言。检查点 F 的流程同步已完成；检查点 E 的人类最终视觉验收仍待确认。
+
+### 阶段 5 收尾（2026-10-19）
+
+- 人类回复“可以，继续吧”，确认正式模型原图的视觉效果。当前运行 `20261019T001301Z-b675a7c0`，输入与最终图哈希未改变；image-review.json 记录原话、日期、具体图像哈希，latest.json 更新为 accepted、human_accepted=true。
+- 本轮真实完整性核验输出：passed=true、state=accepted、slides=1、shapes=15、geometry_issues=[]、reviewed_texts=13、human_visual_acceptance=passed、size_px=[1672,941]、artifact_hashes_verified=true。核对了 PPTX、manifest、当前字体/图片、检测报告、PDF、参考图、交接包、实际提示词、最终原图与核对记录的关联；没有重新生成或修改已确认图片。
+
+| 检查点 | 收尾结果 |
+|---|---|
+| A 环境与中文适配 | 通过；极窄框复现后修复，9 项断行/边界＋4 项字号检查通过 |
+| B 辅助渲染/模型重绘 spike | 通过；真实 PPT/LO/PDF 与参考图生图证据具备 |
+| C 输入与素材校验 | 通过；正例 ready=true，非法字段/缺图负例被拒绝 |
+| D 独立素材与正式 v1 | 通过；当前 1 页、13 文本框＋2 独立图片，v1 已获确认 |
+| E 真实检测与整页重绘 | 通过；几何/内容/字体检查、13 项最终图目视核对与人类视觉确认具备 |
+| F 流程文档同步 | 通过；命令帮助、旧路线断言检索及本地链接核对已执行，文档与实现一致 |
+
+- 主要实现：config.py、outline.py、text_fit.py、builder.py、render.py、checks.py、m1.py；入口、执行源、快照、spike 与证据索引见 src/README.md 和本任务目录。生成文件、字体本体与隔离环境未入库。
+- 发现但不碰：原模板尾随空格、Tabbit 路由不可用保持既有记录；额外 OOXML 工具缺 defusedxml，不声称 XSD 通过。阶段 6 可据此评估补充验证，不假称已在 WPS/PowerPoint 实际打开。
+- 已实现的 M1 不包含多页、自动 diff、独立生图 API、整图 v2 PPTX 或 skill 打包。accepted 只表示本图获确认，不表示开发审查或合入已完成。
+- 阶段 5 待确认问题：无。依 AGENTS 第 9 条在本阶段结束处停下汇报；未创建 review.md、未进入阶段 6、未推送或合入。
+
+## 阶段 6 审查执行（2026-10-19）
+
+- 人类回复“继续”，进入阶段 6。本会话按审查清单自查，不冒称独立会话审查或远程 PR 检查。
+- 发现并复现一个阻塞项：隔离副本删除最终图后，prepare-image 仍返回 accepted。第一轮修复在原范围 m1.py 内增加已生成/验收阶段的证据校验及只读复用；无新依赖、无产物重绘。
+- 修复核查：缺图、改核对记录、改提示词、改准确文字、改交接包五类负例均被拒绝并标记 failed；有效 accepted 原件复跑只读、状态/提示词/图像等哈希不变。没有第二轮修复。
+- 独立审查目录真实运行 build/check：run_id=20261019T004402Z-aa5fbc36、passed=true、slides=1、shapes=15、issues=[]、PDF 为 SourceHanSansSC-Regular/Bold；参考 PNG 与正式已确认 v1 的参考图哈希一致。
+- 结构补充：正式 PPTX 41 个 XML/关系文件可解析，42 个内部关系目标与内容类型覆盖引用有效，ZIP 完整，未内嵌字体本体。这些是基础结构检查，不称为 XSD 通过；额外验证器缺 defusedxml 保持如实记录。
+- 字体、许可证、两项 AI 素材来源哈希均与登记一致；没有素材/字体大文件入库，未发现源码硬编码密钥或个人路径。证据摘要在 output/m1-single-slide/review-20261019/，正式 accepted 图未改变。
+- 修复提交：e2b34f7。已生成 review.md，记录代码/视觉/版权检查结果、非阻塞验证边界及首次本地建主线/合并命令；本次没有 main 引用或远程地址，AI 没有创建主线、推送或合并。
+- 当前结论：三类自审通过、阻塞清零，交人类意图级审查。阶段 6 的人类合入质量门仍待执行；正式合入后再进入知识蒸馏收尾。
+
+## 人类批准与收尾安排（2026-10-19）
+
+- 人类已认可通俗改写后的验收说明，并通过确认问题明确回复“授权你代执行本次本地合并”。这项人类最新指令仅覆盖本次建立 main、合入已审查的 feat/m1-single-slide；没有远程推送授权，也不修改一般合并规则。
+- 合并前的变更仅为收尾文字与已确认沟通偏好的归档，src Python 代码保持 e2b34f7 的审查版本。所有文档提交仍在 feature 分支，不在 main 直接提交。
+- 可复用结论已归档：pitfalls.md 保留中文窄框/标点、会话字体、失效验收证据的实测教训；architecture.md 保留真实单页数据流与后续边界；conventions.md 增加面向人类报告的写法，避免再以内部字段和日志作为主说明。
+- 本地合并计划以 2a84b12 建立初始 main，再使用 --no-ff 合入本分支。合并前预演无冲突；合并后核验实际提交、源码、输入/已验收产物及知识库记录，结果保存在本地产物目录的收尾记录并向人类汇报。

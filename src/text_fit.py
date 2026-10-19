@@ -89,6 +89,17 @@ def _start_new_line(cur: str, unit: str, lines: List[str], font, max_width: floa
             lines[-1] += cur[0]
             cur = cur[1:]
         else:
+            # 上行已满时，把末尾排版单位带到标点前，避免单独一行句号。
+            if lines and len(lines[-1]) > 1:
+                previous = lines[-1]
+                cut = len(previous) - 1
+                if previous[-1] in _WEST_WORD_CHARS:
+                    while cut > 0 and previous[cut - 1] in _WEST_WORD_CHARS:
+                        cut -= 1
+                moved = previous[cut:] + cur
+                if cut > 0 and text_width_px(font, moved) <= max_width:
+                    lines[-1] = previous[:cut].rstrip()
+                    cur = moved
             break
     return cur
 
