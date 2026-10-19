@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import math
 from pathlib import Path
 import re
 
 from PIL import Image
 
-from .config import project_path, sha256_file
+from .config import project_path
 
 
 def _number(value) -> bool:
@@ -132,7 +133,8 @@ def load_outline(input_path: str | Path) -> dict:
         if not source["url"].startswith(("https://", "http://")):
             raise ValueError("来源 URL 必须为 HTTP(S) 链接")
     data["_input_path"] = path
-    data["_input_sha256"] = sha256_file(path)
+    # Git checkout 可在 LF/CRLF 间转换；统一结构性换行，保留其他内容变化。
+    data["_input_sha256"] = hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
     return data
 
 

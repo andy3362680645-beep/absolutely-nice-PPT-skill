@@ -420,3 +420,11 @@ CLI 拟使用 python -m src.m1，不要求用户手动在 WPS 制作页面。运
 - 合并前的变更仅为收尾文字与已确认沟通偏好的归档，src Python 代码保持 e2b34f7 的审查版本。所有文档提交仍在 feature 分支，不在 main 直接提交。
 - 可复用结论已归档：pitfalls.md 保留中文窄框/标点、会话字体、失效验收证据的实测教训；architecture.md 保留真实单页数据流与后续边界；conventions.md 增加面向人类报告的写法，避免再以内部字段和日志作为主说明。
 - 本地合并计划以 2a84b12 建立初始 main，再使用 --no-ff 合入本分支。合并前预演无冲突；合并后核验实际提交、源码、输入/已验收产物及知识库记录，结果保存在本地产物目录的收尾记录并向人类汇报。
+
+## 合并后兼容核查与第二轮修复（2026-10-19）
+
+- 已按明确授权完成首次本地合并：720c96a，父提交为 2a84b12 与 9256a6e；没有推送远程。
+- 合后 validate 显示输入原始哈希改变，prepare-image 正确拒绝旧哈希。继续核对发现只是 Git 将 JSON 的 LF 检出为 CRLF，统一为 LF 后与已验收的 52c0cd... 输入哈希完全相同；PPT/图片未改变。收尾记录先标为 verifying，没有将失败的合后检查当作最终完成。
+- 在 fix/m1-input-line-endings 分支修复 outline.py：输入哈希只统一 CRLF/LF，其他内容仍参与核对。属于本次 M1 合并后核验的兼容修复，无新依赖、无新业务范围；累计第二轮修复，未超过 3 轮。
+- 实测：两种换行形式得到相同输入哈希，均能对应既有运行；真实日期摘要变化会得到不同哈希并被 current_run 拒绝。真实 validate 返回 ready=true、issues=[]、原输入哈希；prepare-image 返回 accepted、reused=true，compileall 通过。
+- 修复后在本次已授权的本地合并收尾中合入修复分支，再核对主线入口、代码差异、知识归档与正式原图。正式结果以 Git 历史及 output/m1-single-slide/completion.json 为准。
