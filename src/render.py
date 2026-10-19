@@ -39,8 +39,8 @@ def _session_fonts(config: dict):
             gdi.RemoveFontResourceExW(path, 0, None)
 
 
-def render_reference(pptx_path: Path, config: dict, run_dir: Path) -> dict:
-    """在独立子目录中导出 PDF 和参考 PNG，拒绝陈旧或无效输出。"""
+def _export_pdf(pptx_path, config, run_dir):
+    """一次独立 LO 转换；不复用旧目录中的输出。"""
     soffice = Path(config["soffice"])
     if not soffice.is_file() or soffice.suffix.lower() not in {".exe", ".com"}:
         raise ValueError("需配置 LibreOffice 直接可执行文件（soffice.com/exe），不使用会改名的包装脚本")
@@ -57,6 +57,13 @@ def render_reference(pptx_path: Path, config: dict, run_dir: Path) -> dict:
     pdf_path = export_dir / (pptx_path.stem + ".pdf")
     if result.returncode != 0 or not pdf_path.is_file():
         raise RuntimeError(f"LibreOffice 转换失败（{result.returncode}）: {(result.stdout + result.stderr)[-800:]}")
+    return pdf_path, font_loads, result.returncode
+
+
+def render_reference(pptx_path: Path, config: dict, run_dir: Path) -> dict:
+    """保持 M1 一页 reference.png 与旧结果字段。"""
+    pdf_path, font_loads, exit_code = _export_pdf(pptx_path, config, run_dir)
+    export_dir = pdf_path.parent
     with pymupdf.open(pdf_path) as doc:
         if len(doc) != 1:
             raise RuntimeError("辅助 PDF 必须为 1 页")
@@ -69,6 +76,31 @@ def render_reference(pptx_path: Path, config: dict, run_dir: Path) -> dict:
     return {
         "pdf": pdf_path.relative_to(run_dir).as_posix(), "reference_png": png_path.relative_to(run_dir).as_posix(),
         "pdf_sha256": sha256_file(pdf_path), "reference_sha256": sha256_file(png_path),
-        "rendered_at_utc": datetime.now(timezone.utc).isoformat(), "lo_exit_code": result.returncode,
+        "rendered_at_utc": datetime.now(timezone.utc).isoformat(), "lo_exit_code": exit_code,
         "session_font_loads": font_loads,
     }
+
+
+
+def render_deck_reference(pptx_path: Path, config: dict, run_dir: Path, slide_records: list[dict]) -> dict:
+    """整套转 PDF 后按清单逐页导出，记录独立路径与真实尺寸。"""
+    if not slide_records:
+        raise ValueError("页面清单不能为空")
+    pdf_path, font_loads, exit_code = _export_pdf(pptx_path, config, run_dir)
+    pages = []
+    with pymupdf.open(pdf_path) as doc:
+        if len(doc) != len(slide_records):
+            raise RuntimeError(f"辅助 PDF 页数错误: 预期 {len(slide_records)}，实际 {len(doc)}")
+        for index, (page, record) in enumerate(zip(doc, slide_records), 1):
+            if abs(page.rect.width - config["canvas"]["width_pt"]) > .1 or abs(page.rect.height - config["canvas"]["height_pt"]) > .1:
+                raise RuntimeError(f"第 {index} 页 [{record['slide_id']}] PDF 尺寸不一致")
+            png = pdf_path.parent / f"reference-{index:02d}.png"
+            scale = config["canvas"]["reference_width_px"] / page.rect.width
+            pix = page.get_pixmap(matrix=pymupdf.Matrix(scale, scale), alpha=False)
+            pix.save(png)
+            pages.append({"slide_index": index, "slide_id": record["slide_id"],
+                          "reference_png": png.relative_to(run_dir).as_posix(),
+                          "reference_sha256": sha256_file(png), "size_px": [pix.width, pix.height]})
+    return {"pdf": pdf_path.relative_to(run_dir).as_posix(), "pdf_sha256": sha256_file(pdf_path),
+            "pages": pages, "rendered_at_utc": datetime.now(timezone.utc).isoformat(),
+            "lo_exit_code": exit_code, "session_font_loads": font_loads}

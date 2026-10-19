@@ -289,3 +289,11 @@ M2 `manifest.json` 使用 `schema_version=2`，保留原有整套输入、PPT、
 - 十项负例覆盖重复页面/形状、错误来源、越界/非有限数值、插画透明要求、第二页缺图/不透明图及 M1 拒绝多页的两种版本；逐页错误能定位第二页。
 - 原 M1 完整 validate 退出 0，`ready=true, issues=[]`，输入哈希未变；`git diff --check` 退出 0。
 - 当前只完成前置探针与输入扩展，尚未实现正式多页组装、导出、检查入口或五页交付。测试失败修复轮次：0；提交前自检修正了页内同名元素的错误定位方式。
+
+### B · 多页组装与辅助导出（通过）
+
+- 验证脚本 `--case build` 退出 0，`passed=true, slides=2, negative_cases=5`；证据 `output/m2-multi-slide/spike/build-b525415b1b/result.json`。
+- 换页、第二页改字、移图、改讲稿与超量均被拒绝；超量没有覆盖前次成功 latest。
+- 验证脚本 `--case render` 退出 0，`passed=true, slides=2, distinct_reference_images=true, m1_contract_preserved=true`；证据 `output/m2-multi-slide/spike/render-5ea39809a7/result.json`。
+- 已用正式构建/导出接口实际生成两页 PDF 与各自参考图，核对页序、图像与哈希；同时在 M2 隔离目录验证旧 M1 单页导出仍为 reference.png 和旧字段。无效 LO 路径被拒绝。
+- 测试失败修复轮次：0。逐页自动检查与 M2 命令入口仍待后续切片。

@@ -44,17 +44,36 @@ def _shape_record(shape, identifier: str, role: str, kind: str, order: int) -> d
 
 
 def verify_reopened(pptx_path: Path, manifest: dict) -> list[str]:
-    """核对重开后的页数、对象类型、ID、位置、图片与可编辑文字。"""
+    """逐页核对真实对象；版本 1 不要求新增的多页字段。"""
     issues = []
     prs = Presentation(pptx_path)
-    if len(prs.slides) != 1:
+    records = manifest["slides"]
+    if len(prs.slides) != len(records) or (manifest["schema_version"] == 1 and len(prs.slides) != 1):
         return ["slide_count"]
     if [prs.slide_width, prs.slide_height] != manifest["canvas_emu"]:
         issues.append("canvas_mismatch")
-    actual = list(prs.slides[0].shapes)
-    records = manifest["slides"][0]["shapes"]
+    for index, (slide, record) in enumerate(zip(prs.slides, records), 1):
+        page_issues = _verify_shapes(list(slide.shapes), record["shapes"])
+        if manifest["schema_version"] == 2:
+            if record["slide_index"] != index or slide.slide_id != record["pptx_slide_id"]:
+                page_issues.append("slide_identity")
+            if slide.notes_slide.notes_text_frame.text != record["notes_text"]:
+                page_issues.append("notes_mismatch")
+            expected_notes = "\n".join(part for part in (
+                record["notes"], "\n".join(f"{source['publisher']}，{source['date']}：{source['url']}" for source in record["sources"])
+            ) if part)
+            if expected_notes != record["notes_text"] or record["source_ids"] != [item["id"] for item in record["sources"]]:
+                page_issues.append("source_association")
+            page_issues = [f"page={index}:{record['slide_id']}:{item}" for item in page_issues]
+        issues.extend(page_issues)
+    return sorted(set(issues))
+
+
+def _verify_shapes(actual, records):
+    """比较一页的独立图片和可编辑文本，保持旧检查语义。"""
+    issues = []
     if len(actual) != len(records):
-        return issues + ["shape_count"]
+        return ["shape_count"]
     for shape, record in zip(actual, records):
         key = record["id"]
         if shape.shape_id != record["shape_id"] or shape.name != key:
@@ -82,23 +101,10 @@ def verify_reopened(pptx_path: Path, manifest: dict) -> list[str]:
     return sorted(set(issues))
 
 
-def build_slide(outline: dict, config: dict, out_root: Path) -> dict:
-    """构建独立版本目录；超量或重开核对失败时不更新 latest 成功记录。"""
-    issues = check_assets(outline)
-    if issues:
-        raise ValueError("; ".join(issues))
-    out_root.mkdir(parents=True, exist_ok=True)
-    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ-") + uuid.uuid4().hex[:8]
-    run_dir = out_root / "runs" / run_id
-    run_dir.mkdir(parents=True)
-    prs = Presentation()
-    prs.slide_width = Pt(config["canvas"]["width_pt"])
-    prs.slide_height = Pt(config["canvas"]["height_pt"])
-    prs.core_properties.title = outline["title"]
-    prs.core_properties.author = "PPT_agent"
+def _populate_slide(prs, source_slide, outline, config):
+    """按层级构建一页，并返回与该页同步的对象清单。"""
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     records = []
-    source_slide = outline["slides"][0]
     pictures = sorted(source_slide["images"], key=lambda item: item["role"] != "background")
     for picture in pictures:
         path = project_path(picture["path"])
@@ -145,19 +151,66 @@ def build_slide(outline: dict, config: dict, out_root: Path) -> dict:
             "fill_color": text.get("fill_color"), "align": text.get("align", "left"),
         })
         records.append(record)
-    slide.notes_slide.notes_text_frame.text = "\n".join(
-        f"{source['publisher']}，{source['date']}：{source['url']}" for source in outline["sources"]
-    )
+    sources = outline["sources"] if outline["schema_version"] == 1 else [source for key in source_slide["source_ids"] for source in outline["sources"] if source["id"] == key]
+    notes = "\n".join(f"{source['publisher']}，{source['date']}：{source['url']}" for source in sources)
+    if outline["schema_version"] == 2:
+        notes = "\n".join(part for part in (source_slide["notes"], notes) if part)
+    slide.notes_slide.notes_text_frame.text = notes
+    record = {"slide_id": source_slide["slide_id"], "slide_index": len(prs.slides),
+              "shapes": records, "content_groups": source_slide.get("content_groups", {})}
+    if outline["schema_version"] == 2:
+        record.update(pptx_slide_id=slide.slide_id, layout_type=source_slide["layout_type"],
+                      notes=source_slide["notes"], notes_text=notes, source_ids=source_slide["source_ids"], sources=sources)
+    return record
+
+
+def build_slide(outline: dict, config: dict, out_root: Path) -> dict:
+    """保留 M1 schema 1 单页构建。"""
+    if outline.get("schema_version") != 1 or len(outline["slides"]) != 1:
+        raise ValueError("M1 build_slide 只支持版本 1 单页")
+    return _build(outline, config, out_root)
+
+
+def build_deck(outline: dict, config: dict, out_root: Path) -> dict:
+    """构建 schema 2 多页，逐页重开核验后才更新最新运行。"""
+    if outline.get("schema_version") != 2:
+        raise ValueError("M2 build_deck 只支持版本 2")
+    return _build(outline, config, out_root)
+
+
+def _build(outline, config, out_root):
+    """共用版本化构建，不覆盖历史产物。"""
+    issues = check_assets(outline)
+    if issues:
+        raise ValueError("; ".join(issues))
+    out_root.mkdir(parents=True, exist_ok=True)
+    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ-") + uuid.uuid4().hex[:8]
+    run_dir = out_root / "runs" / run_id
+    run_dir.mkdir(parents=True)
+    prs = Presentation()
+    prs.slide_width = Pt(config["canvas"]["width_pt"])
+    prs.slide_height = Pt(config["canvas"]["height_pt"])
+    prs.core_properties.title = outline["title"]
+    prs.core_properties.author = "PPT_agent"
+    slides = []
+    for index, source in enumerate(outline["slides"], 1):
+        try:
+            slides.append(_populate_slide(prs, source, outline, config))
+        except ValueError as exc:
+            raise ValueError(f"第 {index} 页 [{source['slide_id']}]: {exc}") from exc
     filename = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", outline["title"])[:80].strip(" .") or outline["deck_id"]
     pptx_path = run_dir / f"{filename}_v1_可编辑.pptx"
     prs.save(pptx_path)
     manifest = {
-        "schema_version": 1, "deck_id": outline["deck_id"], "run_id": run_id,
+        "schema_version": outline["schema_version"], "deck_id": outline["deck_id"], "run_id": run_id,
         "input_sha256": outline["_input_sha256"], "canvas": config["canvas"],
         "canvas_emu": [prs.slide_width, prs.slide_height], "pptx_file": pptx_path.name,
         "font_records": {key: {k: v for k, v in font.items() if k != "resolved_path"} for key, font in config["fonts"].items()},
-        "slides": [{"slide_id": source_slide["slide_id"], "slide_index": 1, "shapes": records, "content_groups": source_slide.get("content_groups", {})}],
+        "slides": slides,
     }
+    if outline["schema_version"] == 2:
+        manifest.update(asset_source_record=outline["asset_source_record"],
+                        asset_source_sha256=sha256_file(project_path(outline["asset_source_record"])))
     reopened_issues = verify_reopened(pptx_path, manifest)
     if reopened_issues:
         raise RuntimeError("PPT 重开核对失败: " + "; ".join(reopened_issues))
@@ -169,4 +222,11 @@ def build_slide(outline: dict, config: dict, out_root: Path) -> dict:
         "v1_confirmed": False, "run_dir": (Path("runs") / run_id).as_posix(),
     }
     write_json(out_root / "latest.json", state)
-    return {"passed": True, "run_id": run_id, "pptx": str(pptx_path), "slides": 1, "shapes": len(records), "font_sizes": {r["id"]: r["font_size_pt"] for r in records if r["type"] == "text"}}
+    result = {"passed": True, "run_id": run_id, "pptx": str(pptx_path), "slides": len(slides),
+              "shapes": sum(len(slide["shapes"]) for slide in slides)}
+    if outline["schema_version"] == 1:
+        result["font_sizes"] = {r["id"]: r["font_size_pt"] for r in slides[0]["shapes"] if r["type"] == "text"}
+    else:
+        result["pages"] = [{"slide_index": slide["slide_index"], "slide_id": slide["slide_id"],
+                            "shapes": len(slide["shapes"]), "font_sizes": {r["id"]: r["font_size_pt"] for r in slide["shapes"] if r["type"] == "text"}} for slide in slides]
+    return result

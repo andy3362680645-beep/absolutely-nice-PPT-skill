@@ -184,10 +184,90 @@ def schema_case(run):
     return {"passed": True, "case": "schema", "negative_cases": len(negatives), "crlf_compatible": True}
 
 
+def built_fixture(run):
+    """用正式多页组装器建立本次隔离运行。"""
+    from src.builder import build_deck
+    path, outline = fixture(run)
+    config = load_config(outline)
+    root = run / "built"
+    result = build_deck(outline, config, root)
+    state = json.loads((root / "latest.json").read_text(encoding="utf-8"))
+    version = root / state["run_dir"]
+    manifest = json.loads((version / "manifest.json").read_text(encoding="utf-8"))
+    return path, outline, config, root, version, manifest, result
+
+
+def build_case(run):
+    """重开核对必须能拒绝换页、改字、移图和超量。"""
+    from src.builder import build_deck, verify_reopened
+    _, outline, config, root, version, manifest, result = built_fixture(run)
+    pptx = version / manifest["pptx_file"]
+    assert result["slides"] == 2 and not verify_reopened(pptx, manifest)
+    negatives = {}
+    for name in ("swap_pages", "second_page_text", "second_page_picture", "second_page_notes"):
+        prs = Presentation(pptx)
+        if name == "swap_pages":
+            ids = prs.slides._sldIdLst
+            ids.insert(0, ids[1])
+        elif name == "second_page_text":
+            next(s for s in prs.slides[1].shapes if s.has_text_frame).text = "故意改动第二页"
+        elif name == "second_page_picture":
+            prs.slides[1].shapes[1].left += Pt(5)
+        else:
+            prs.slides[1].notes_slide.notes_text_frame.text = "故意改变讲稿"
+        changed = run / (name + ".pptx")
+        prs.save(changed)
+        issues = verify_reopened(changed, manifest)
+        assert issues, name
+        negatives[name] = issues
+    latest_before = sha256_file(root / "latest.json")
+    bad = copy.deepcopy(outline)
+    bad["slides"][1]["texts"][0]["text"] = "超量内容" * 300
+    try:
+        build_deck(bad, config, root)
+    except ValueError as exc:
+        assert "第 2 页" in str(exc), str(exc)
+        negatives["overflow_preserves_latest"] = str(exc)
+    else:
+        raise AssertionError("超量未拒绝")
+    assert sha256_file(root / "latest.json") == latest_before
+    save_json(run / "result.json", {"passed": True, "case": "build", "pages": result["pages"], "negative_cases": negatives})
+    return {"passed": True, "case": "build", "slides": 2, "negative_cases": len(negatives)}
+
+
+def render_case(run):
+    """真实多页导出、旧单页契约与错误路径验证。"""
+    from src.builder import build_slide
+    from src.render import render_deck_reference, render_reference
+    _, _, config, _, version, manifest, _ = built_fixture(run)
+    result = render_deck_reference(version / manifest["pptx_file"], config, version, manifest["slides"])
+    assert len(result["pages"]) == 2
+    hashes = []
+    for index, page in enumerate(result["pages"], 1):
+        assert page["slide_index"] == index and page["slide_id"] == f"slide-{index:02d}"
+        image = version / page["reference_png"]
+        assert sha256_file(image) == page["reference_sha256"]
+        hashes.append(page["reference_sha256"])
+    assert hashes[0] != hashes[1]
+    try:
+        render_deck_reference(version / manifest["pptx_file"], {**config, "soffice": str(run / "missing.exe")}, version, manifest["slides"])
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("无效 LO 路径未拒绝")
+    single = build_slide(load_outline(M1_INPUT), config, run / "single")
+    single_dir = Path(single["pptx"]).parent
+    old = render_reference(Path(single["pptx"]), config, single_dir)
+    assert Path(old["reference_png"]).name == "reference.png"
+    assert sha256_file(single_dir / old["reference_png"]) == old["reference_sha256"]
+    save_json(run / "result.json", {"passed": True, "case": "render", "multi": result, "single": old})
+    return {"passed": True, "case": "render", "slides": 2, "distinct_reference_images": True, "m1_contract_preserved": True}
+
+
 def main():
     """只提供已经实现的验证分支；失败以非零退出。"""
     parser = argparse.ArgumentParser(description=__doc__)
-    cases = {"probe": probe, "schema": schema_case}
+    cases = {"probe": probe, "schema": schema_case, "build": build_case, "render": render_case}
     parser.add_argument("--case", choices=list(cases), required=True)
     args = parser.parse_args()
     run = ROOT / "output/m2-multi-slide/spike" / (args.case + "-" + uuid.uuid4().hex[:10])
