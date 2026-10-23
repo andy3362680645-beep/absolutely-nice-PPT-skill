@@ -90,3 +90,17 @@ AI视觉自检通过，人类模型图确认pending，尚未进行阶段6代码/
 - 第1、2、4页的slide XML和参考PNG逐字节相同，未改其内容或重新制作素材；记录见新版revision-check.json。
 
 新版运行目录：`output/cross-ai-visual-workflow/sample-academic-02/`，旧sample-01与原包保留。新版v1的人类确认pending；尚未重渲染第3页或构建新版发行包。当前仍在阶段5，不推送、不合并。
+
+## 阶段5收尾：学术修订已确认，发行v2核验通过
+
+用户明确认可新版v1并授权第3页模型美化；内置image_gen实际输出1672×941原图，三组文字、数字、图表关系、来源及页码经AI逐项核对。用户随后明确回复“认可新版第3页效果”，验收绑定当前模型图哈希。第1、2、4页复用原图，不额外生成。
+
+最新发行：`output/releases/ppt-agent-2026-10-23-visual-v2/`。包括学术信息量规则和已获确认的新版可编辑样例/参考预览；模型原图另在sample-academic-02/model，不混称可编辑对象。
+
+实际执行：
+
+- `python -m src.release build --version 2026-10-23-visual-v2 --sample-run output/cross-ai-visual-workflow/sample-academic-02 --out output/releases`：退出0，passed=true，source_and_old_artifacts_unchanged=true。
+- `python -m src.release verify --folder output/releases/ppt-agent-2026-10-23-visual-v2/ppt-agent --zip output/releases/ppt-agent-2026-10-23-visual-v2/ppt-agent-2026-10-23-visual-v2.zip --runtime`：退出0，49文件、73处引用、ZIP完整性/隐私/原生样例结构通过，5项独立入口/对象读取退出码均为0。
+- 再次比较55个受保护历史文件，changed=[]。发布器同时检查开发源与旧快照未因构建改变。旧visual-v1、旧开发记录和个人安装副本保留。
+
+实现和本阶段自测已完成。当前停在阶段5结束，等待维护者“继续”后进入阶段6代码、视觉、版权联合审查；不得把本记录当作阶段6通过或合并授权。豆包实际试跑仍待验证，不因本机包核验而写为兼容性已验证。
