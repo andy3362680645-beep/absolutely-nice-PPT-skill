@@ -32,7 +32,7 @@
   1. 生成前：`text_fit.best_font_size()` 计算字号与断行。
   2. 打开时：文本框设置 `auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE` 兜底。
   3. 渲染后：PyMuPDF 几何检测，超框则降字号重生成，并进入视觉自检。
-- 字号下限 10pt；放不下返回 None，调用方必须处理（精简文案或拆页），不得静默截断。
+- 制作时显式传入[场景配置](knowledge/visual-profiles.json)对应角色下限；10pt仅为历史低层兼容默认值。放不下返回None，调用方先精简、图解或重排，不静默截断或降至技术底线。
 - 行距系数用 1.2（纯字形高度会低估，实测结论）。
 - 测量字体、渲染字体、PPT 字体名必须是同一套字体（见 `knowledge/fonts.md`）。
 

@@ -21,7 +21,7 @@
 ## 中文文本
 
 - 唯一字号自适应入口：`text_fit.best_font_size()` / `text_fit.cjk_wrap()`。
-- 行距系数 1.2；默认字号上限 24pt、下限 10pt；放不下返回 None。
+- 行距系数1.2；低层兼容默认上限24pt、下限10pt。制作时显式传入[场景配置](visual-profiles.json)对应角色下限；技术默认值不代表投影阅读标准。放不下返回None，先精简、图解或重排。
 - 禁止对中文调用库自带 `fit_text()`。
 - 文本框统一设置 `word_wrap=True` 与 `MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE`。
 
