@@ -6,14 +6,14 @@
 
 完整制作顺序、课堂图解与其他场景的规则、独立谢谢页和重点标注已写入入口及模板。独立检查器可以核对实际PPT和辅助PDF，发现小字号、越界和结构问题，未知项单独列出。
 
-已按确认的大纲/风格生成原创素材与4页可编辑稿，真实导出与客观检查通过，AI已逐页看图。目前等待人类确认当前v1；最终模型图、新发布包及阶段6验收尚未完成。
+已按确认的大纲/风格生成原创素材与4页可编辑稿，真实导出与客观检查通过，AI已逐页看图。当前v1已获人类明确确认；新版独立包已通过静态与隔离入口检查。四页模型图已实际生成并逐页核对，目前等待人类最终视觉确认；阶段6验收尚未开始。
 
 ## 实际确认范围
 
 - 维护者在设计呈现后回复“继续推进”：确认design并进入阶段5。
 - 问答“认可大纲与风格，继续制作样张”：仅确认4页内容/风格。
 - 问答“认可，沿用此插画风格”：确认第一张素材的线稿、蓝青色与教学插画方向。
-- 当前v1已提供具体PPT与4张完整预览，确认问题仍待答；不从前两项推断v1或模型成品已验收。
+- 用户明确回复“认可当前可编辑版，继续整页模型美化”：确认当前v1与其入包，确认绑定PPT的SHA256；模型最终图仍另行验收。
 
 ## 检查点真实输出
 
@@ -25,15 +25,15 @@
 | C 入口校验 | 当前项目及捆绑Python缺少可选validator的PyYAML；使用已有系统Python运行同一quick_validate.py，输出Skill is valid!，未新增依赖 | 通过 |
 | C/D 文档 | git diff --check针对SKILL、README、.ai、src退出0；有Git LF/CRLF提示，无格式错误；五个新增Python/探针文件ast.parse通过 | 格式与语法通过，语义按对照清单检查 |
 | E M1兼容 | fresh m1-regression-01 build退出0：1页15对象；check退出0，passed=true、issues=[]、实际PDF为思源Regular/Bold | 通过；新运行停在awaiting_v1_confirmation，不写旧accepted |
-| F v1样页 | sample-01：4页，真实LO导出后technical_status=passed、errors=[]、needs_review=[]；AI实际查看四张完整预览 | 客观/AI视觉通过，人类v1待确认 |
+| F v1样页 | sample-01：4页，真实LO导出后technical_status=passed、errors=[]、needs_review=[]；AI实际查看四张完整预览 | 客观/AI视觉通过，人类v1已明确确认 |
 | G 发布阻断负例 | 对未获v1确认的样页执行build，退出1，提示“样页尚未完成客观、视觉与人类v1确认” | 正确拒绝；未生成该负例版本 |
 
 ## 代码与范围
 
 - 新模块：src/presentation_audit.py、src/release.py；已确认范围内的规范与模板按design更新。
 - src/text_fit.py只改注释/docstring，默认值、参数与算法不变；旧组装/渲染/检查/输入及manifest未改。
-- 发布模块使用白名单和暂存目录，旧包不覆盖；正式构建与隔离核验尚未执行，不提前写成功。
-- 受保护的旧M2、GM记录和上次发布共55个文件，在本轮output保存起始哈希；收尾还须比较。
+- 发布模块使用白名单和暂存目录，旧包不覆盖；正式构建退出0，verify --runtime退出0，49个文件、68处本地引用、ZIP/隐私/原生对象核验通过。系统临时解压在普通沙箱内受限，获准使用系统临时目录后原命令通过，未更改实现。
+- 受保护的旧M2、GM记录和上次发布共55个文件，收尾哈希比较changed=[]，全部保持原样。
 
 ## 视觉与素材自检
 
@@ -46,8 +46,27 @@
 
 ## 未完成及发现但不碰
 
-- 等待当前v1人类确认后进行实际模型整页协调，逐字/数字与图形关系另核对。
-- 新包build、verify --runtime、篡改/漏文件/覆盖拒绝与旧文件保护收尾仍待执行。
+- 四页模型图已生成并核对，待人类确认效果；不将AI自检等同于人类最终验收。
+- 新包build、verify --runtime已经通过；篡改、漏文件、ZIP混入文件与覆盖负例均被正确拒绝，旧ZIP哈希未变。独立核验仅覆盖当前环境入口和对象读取，未代替接收方安装或豆包试跑。
 - 豆包端尚未实际试跑，兼容性保持待验证。
 - M1旧prepare-image固定茶饮提示词、原M2未完成任务与GM历史产物不改；用户个人安装副本不改。
 - 当前未提交最终阶段6审查、不推送、不合并。
+
+## 发行检查实际命令与结果
+
+- `python -m src.release build --version 2026-10-23-visual-v1 --sample-run output/cross-ai-visual-workflow/sample-01 --out output/releases`：退出0，passed=true，source_and_old_artifacts_unchanged=true。
+- `python -m src.release verify --folder output/releases/ppt-agent-2026-10-23-visual-v1/ppt-agent --zip output/releases/ppt-agent-2026-10-23-visual-v1/ppt-agent-2026-10-23-visual-v1.zip --runtime`：退出0，5项runtime_smoke均exit_code=0。
+- 系统已有Python运行PPTX技能的`office/validate.py`检查当前editable.pptx：退出0，All validations PASSED!；未安装新依赖。
+- 负例与保护结果：`output/cross-ai-visual-workflow/release-negative-results.json`，passed=true。
+- 可交付文件夹与ZIP在新版本目录，未改个人安装副本。包内含人类已确认v1及其参考预览；最终模型图片单独交付。
+
+## 四页整页模型协调结果
+
+使用内置image_gen真实调用，分别输入当前页可编辑预览、相关原创素材、背景和准确文字。第1页先验证，再制作第2至4页。四张均为1672×941原生输出，未用代码覆盖文字、裁剪或拉伸。提示词、哈希和逐页记录保存在`output/cross-ai-visual-workflow/sample-01/model/`。
+
+- 第1页：仓储、运输、交接分别对应主体图示，正文、重点与来源完整。
+- 第2页：四组不同动作、四个步骤及对应解释完整，阅读顺序明确。
+- 第3页：五点值2/3/6/4/3，与0至4小时及纵轴0至8对应，重点说明与“排版演示记录”完整。目视核对关系，不宣称OCR或像素精确检测。
+- 第4页：独立谢谢页，仅致谢、交流邀请、页码与原创人物。
+
+AI视觉自检通过，人类模型图确认pending，尚未进行阶段6代码/视觉/版权联合验收，未合并。
