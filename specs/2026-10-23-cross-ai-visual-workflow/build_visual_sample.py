@@ -144,12 +144,12 @@ def build(brief, assets, out):
     picture(second, assets / 'process.png', [60, 185, 840, 280])
     second.notes_slide.notes_text_frame.text = '讲解用的流程建议，非引用法规中的标准操作程序。'
 
-    third = page(prs, assets, 3, '一段温度记录', '数据：排版演示记录')
-    add_text(third, 'y-unit', '温度（℃）', [42, 109, 200, 34], 20, 'data_label', True, TEAL)
+    third = page(prs, assets, 3, '温度记录：波动特征与解释边界', '数据：排版演示记录；分析为讲解示例')
+    add_text(third, 'y-unit', '温度（℃）', [42, 106, 200, 32], 20, 'data_label', True, TEAL)
     data = CategoryChartData()
     data.categories = ['0', '1', '2', '3', '4']
     data.add_series('温度（℃）', [2, 3, 6, 4, 3])
-    frame = third.shapes.add_chart(XL_CHART_TYPE.LINE_MARKERS, Pt(40), Pt(153), Pt(598), Pt(310), data)
+    frame = third.shapes.add_chart(XL_CHART_TYPE.LINE_MARKERS, Pt(40), Pt(143), Pt(492), Pt(202), data)
     frame.name = 'data_label:temperature-chart'
     chart = frame.chart
     chart.has_legend = chart.has_title = False
@@ -173,11 +173,18 @@ def build(brief, assets, out):
     plot.data_labels.font.name, plot.data_labels.font.size = '思源黑体', Pt(18)
     plot.data_labels.font.color.rgb = RGBColor.from_string(NAVY)
     plot.data_labels.position = XL_DATA_LABEL_POSITION.ABOVE
-    add_text(third, 'x-unit', '时间（小时）', [455, 465, 180, 34], 18, 'data_label', color=TEAL, align='right')
-    marker(third, 'peak', [672, 190, 230, 36])
-    add_text(third, 'peak', '第 2 小时，\n温度记录升高', [668, 180, 248, 104], 28, 'body', True, NAVY)
-    add_text(third, 'explanation', '对照时间点，\n回看现场情况。', [668, 317, 248, 100], 26, 'body')
-    third.notes_slide.notes_text_frame.text = '此图为排版演示记录：时间0/1/2/3/4小时，温度2/3/6/4/3℃。不是实测、企业表现或食品温度限值。'
+    add_text(third, 'x-unit', '时间（小时）', [350, 345, 180, 32], 18, 'data_label', color=TEAL, align='right')
+    marker(third, 'observation', [44, 379, 132, 28])
+    add_text(third, 'observation-heading', '记录特征', [42, 374, 240, 40], 26, 'heading', True, NAVY)
+    add_text(third, 'observation', '0–4小时共有5个离散测点。温度由2℃升至第2小时的6℃，随后回落至3℃；观测范围为2–6℃，极差为4℃。',
+             [42, 414, 496, 96], 24, 'body')
+    add_text(third, 'analysis-heading', '分析思路', [568, 108, 340, 40], 26, 'heading', True, TEAL)
+    add_text(third, 'analysis', '峰值可作为回查时间点，结合设备状态、作业记录与测点条件核实原因。单条折线不足以认定故障或证明温控措施有效。',
+             [568, 151, 350, 176], 24, 'body')
+    add_text(third, 'boundary-heading', '证据边界', [568, 332, 340, 40], 26, 'heading', True, TEAL)
+    add_text(third, 'boundary', '记录未给出具体产品、测点位置及判定标准，无法据此判断是否超标，也不能评价冷链整体质量。',
+             [568, 375, 350, 135], 24, 'body')
+    third.notes_slide.notes_text_frame.text = '此图为排版演示记录：时间0/1/2/3/4小时，温度2/3/6/4/3℃。极差=6−2=4℃。分析为讲解示例，不是论文实证；正式文献任务须替换为可追溯的原文数据与分析。'
 
     fourth = page(prs, assets, 4)
     add_text(fourth, 'thanks', '谢谢大家', [68, 181, 430, 95], 54, 'thanks', True, NAVY)

@@ -70,3 +70,23 @@
 - 第4页：独立谢谢页，仅致谢、交流邀请、页码与原创人物。
 
 AI视觉自检通过，人类模型图确认pending，尚未进行阶段6代码/视觉/版权联合验收，未合并。
+
+## 最新人类反馈：风格认可，信息量需修订
+
+用户认可四页图片风格，但指出第3页文字与分析过少，学术/文献场景需要充分论证。此回复不作为最终模型验收。当前阶段5退回受影响内容/版式，补充方案见academic-density-revision.md；尚未修改正式规则、样页代码或发行快照。原包仅为本轮反馈前的候选版本，不作为最终完成版推荐。
+
+## 学术密度修订已实施，待确认新版可编辑稿
+
+维护者明确认可补充方案与第3页大纲。已更新入口、产品流程、文献/视觉约定、大纲/跨宿主模板和视觉审查要求：学术页保留必要论证，不统一限为几个短句，既检查堆字也检查信息过薄。
+
+第3页新增记录特征、分析思路和证据边界三组解释，原生图表不变；标题40pt、分组26pt、三段正文24pt。查看真实整页预览后，AI认为内容充分且层级清楚，暂无溢出/遮挡问题。仍为讲解演示，不是论文实证。
+
+实际检查：
+
+- 新版构建命令：`python specs/2026-10-23-cross-ai-visual-workflow/build_visual_sample.py --brief output/cross-ai-visual-workflow/sample-brief-academic-v2.md --assets assets/cross-ai-visual-workflow/sample-01 --out output/cross-ai-visual-workflow/sample-academic-02`，退出0；4页，technical_status=passed，errors=[]，needs_review=[]。
+- 系统Python运行PPTX技能office/validate.py检查新版editable.pptx：退出0，All validations PASSED!。
+- quick_validate.py检查skill：退出0，Skill is valid!。git diff --check针对本轮文件退出0。
+- 7份修改规则的45处本地引用/锚点核对通过，55个历史受保护文件无变化。
+- 第1、2、4页的slide XML和参考PNG逐字节相同，未改其内容或重新制作素材；记录见新版revision-check.json。
+
+新版运行目录：`output/cross-ai-visual-workflow/sample-academic-02/`，旧sample-01与原包保留。新版v1的人类确认pending；尚未重渲染第3页或构建新版发行包。当前仍在阶段5，不推送、不合并。
