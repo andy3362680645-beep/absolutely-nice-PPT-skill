@@ -28,7 +28,7 @@ LINE_FACTOR = 1.2
 # LO 混排的字距可能高于 Pillow，保留 10% 横向余量，防止再次折行。
 WIDTH_SAFETY = 0.9
 
-# 默认字号上下限（投影可读性下限 10pt）
+# 历史低层兼容默认值；制作时显式传入场景角色阈值，10pt不作为投影阅读标准。
 DEFAULT_CAP_PT = 24
 DEFAULT_FLOOR_PT = 10
 
@@ -164,7 +164,7 @@ def best_font_size(
         max_w_pt: 文本框可用宽度（pt），= (shape.width - 左右内边距)/12700。
         max_h_pt: 文本框可用高度（pt）。
         cap_pt: 字号上限。
-        floor_pt: 字号下限（投影可读性下限）。
+        floor_pt: 调用方显式给出的字号下限；产品制作按场景角色配置，不直接采用技术默认值。
         line_factor: 行距系数。
         font_index: ttc 集合字体时的字体序号。
 

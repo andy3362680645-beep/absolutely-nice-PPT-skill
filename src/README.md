@@ -2,6 +2,32 @@
 
 按 product-sop 流水线拆分。每个模块一个文件、单一职责。
 
+## 跨宿主成品检查
+
+宿主可使用自己的PPT工具，再用本入口检查真实成品。相对输入按当前工作目录解析，默认[场景配置](../.ai/knowledge/visual-profiles.json)从包内读取。
+
+```powershell
+python -m src.presentation_audit inventory --pptx my-report.pptx --out output/inventory.json
+python -m src.presentation_audit check --pptx my-report.pptx --map my-report-audit.json --pdf my-report.pdf --out output/audit-01
+```
+
+inventory给出文件哈希、实际页序、slide ID、shape_path和样式。AI依据确认大纲填写profile_id、require_thanks、每页kind及对象role。字段见[角色模板](../.ai/templates/presentation-audit.json)，模板本身不是当前文件的证据；PPT变化必须重读。
+
+文字角色为title、heading、body、data_label、source、page_number、thanks、contact；图形角色为background、illustration、decoration。正文不能冒标来源或页码。完整汇报require_thanks=true；单页片段可明确false，报告标明范围。
+
+check核验实际字号、普通对象边界与辅助PDF字符。未知继承、旋转/分组、特殊图表、公式或缺少PDF列待核查。退出0=本次客观检查通过，1=确定问题/输入失败，2=仍有未验证项。输出audit.json和通俗审查摘要，视觉与人类验收另行记录；不改输入，不覆盖已有输出。
+
+## 独立发行快照
+
+```powershell
+python -m src.release build --version 2026-10-23-visual-v1 --sample-run output/cross-ai-visual-workflow/sample-01 --out output/releases
+python -m src.release verify --folder output/releases/ppt-agent-2026-10-23-visual-v1/ppt-agent --zip output/releases/ppt-agent-2026-10-23-visual-v1/ppt-agent-2026-10-23-visual-v1.zip --runtime
+```
+
+构建要求样页客观、视觉和绑定当前PPT哈希的人类v1确认已具备，白名单选择规范/代码及原创样例，拒绝覆盖版本。验证文件/ZIP、哈希、相对链接、隐私和隔离入口；源、旧任务、旧包和Git状态受保护。发布说明与开发说明分别生成，不自动更新安装副本。接收方使用[共用复测任务](../.ai/templates/cross-host-trial.md)，未实际运行的平台写待验证。
+
+新审查附加角色说明与旧manifest分开。下方保留原M1路径；M2实验代码的正式任务未在本轮验收。m1 prepare-image含早期茶饮、暖白/茶绿固定提示词，其他主题按当前确认页组织实际生图，不当作通用主题渲染器。
+
 ## 已就位
 
 - `config.py`：解析项目相对路径、字体及运行参数，不包含个人路径。
