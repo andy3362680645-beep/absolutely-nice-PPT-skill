@@ -39,4 +39,4 @@
 - 本次公开GitHub提交不包含本地ZIP，独立ZIP可由维护者另行转发；没有创建GitHub Release。
 - 新线稿路径的视觉实测作为后续制作任务，不在本轮重新制作论文PPT。
 
-PR地址在实际创建后补记，当前不预填不存在的链接。
+2026-10-25已实际创建[PR #2](https://github.com/andy3362680645-beep/absolutely-nice-PPT-skill/pull/2)，base=main，head=codex/wireframe-style-personalization；创建前推送退出0。AI自审完成，等待人类验收及合入。
