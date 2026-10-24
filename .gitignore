@@ -27,6 +27,9 @@ fonts/*
 *.log
 .env
 
+# 本地个人PPT偏好与私有配置；公共空白模板另行分发
+.local/
+
 # ===== 操作系统 =====
 Thumbs.db
 ehthumbs.db

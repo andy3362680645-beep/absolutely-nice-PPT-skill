@@ -2,6 +2,10 @@
 
 按 product-sop 流水线拆分。每个模块一个文件、单一职责。
 
+2026-10-25起产品默认采用大纲→真实内容线稿→参考图选风格→正式模型渲染；由宿主依[产品SOP](../.ai/product-sop.md)执行。以下原生PPT命令为按需辅助路径，不是默认前置，也没有自动生成新线稿或提供记忆数据库。
+
+独立偏好规则见[协议](../.ai/knowledge/user-preferences.md)，实例默认存.local/ppt-agent/preferences.md；不加入公共Git或发布包。src.release同步新公共资源及发行说明，可选原生样例保留，不作为新默认流程的视觉验收证据。
+
 ## 跨宿主成品检查
 
 宿主可使用自己的PPT工具，再用本入口检查真实成品。相对输入按当前工作目录解析，默认[场景配置](../.ai/knowledge/visual-profiles.json)从包内读取。
