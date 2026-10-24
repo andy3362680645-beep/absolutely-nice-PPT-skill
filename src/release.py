@@ -34,7 +34,9 @@ def write_json(path, value):
 
 def _source_files():
     return sorted([ROOT / name for name in ['SKILL.md', 'AGENTS.md', 'requirements.txt']]
-                  + list((ROOT / '.ai').rglob('*.md')) + [ROOT / name for name in JSON_RESOURCES]
+                  + [p for p in (ROOT / '.ai').rglob('*.md')
+                     if not _personal_path(p.relative_to(ROOT).as_posix())]
+                  + [ROOT / name for name in JSON_RESOURCES]
                   + list((ROOT / 'src').glob('*.py')))
 
 
@@ -66,13 +68,19 @@ def _portable_docs(package):
     docs = {
         '使用说明.md': '''# PPT_agent 使用说明
 
-把整个ppt-agent文件夹导入支持本地技能的AI，或请有文件访问能力的AI先读取[SKILL.md](SKILL.md)。开发源、安装副本与发布快照相互独立；更新时保存自己的任务文件，再换用新副本。
+把整个ppt-agent文件夹导入支持本地技能的AI，或请有文件访问能力的AI先读取[SKILL.md](SKILL.md)。开发源、安装副本与发布快照相互独立；更新时保留任务和私有偏好，再换用新副本，不自动覆盖旧目录。
 
 ## 制作顺序
 
-确定主题 → 检索内容 → 确认逐页大纲 → 网上检索相关PPT风格 → 生图制作对应背景、插画和图案 → 制作并确认可编辑稿 → 正文、背景、插画装饰共同进行整页模型协调 → 核对交付。详细规则见[产品流程](.ai/product-sop.md)。
+主题与受众 → 检索内容资料和真实图片 → 确认准确逐页大纲 → 真实文案灰阶线稿与总览 → 确认密度和布局 → 看参考图选风格 → 原创素材及代表页正式模型渲染 → 确认后扩展整套 → 核对交付。详细规则见[产品流程](.ai/product-sop.md)。可编辑PPT仅按需制作，默认内容修改源为准确大纲。
 
-宿主需要能检索、读写PPT、查看完整预览和实际生图。本包不附带这些服务，不提供账号或API权限。缺项应明确说明，普通PDF/PNG导出只作辅助检查。素材生图与最终整页模型协调分别执行。可编辑稿先解决大字、图文布局、重点色/底纹与独立谢谢页。
+AI展示实际参考图片供选择，用户也可提供理想图片；AI自动抽象设计参数、组织提示词并原创构图，不要求用户描述风格或写提示词。文案去空泛口号和免责套话，保留学术论证、来源和必要限定。布局与提示词见[线稿指南](.ai/knowledge/wireframe-layouts.md)、[风格指南](.ai/knowledge/style-prompts.md)。
+
+宿主需要能检索、读写资料、查看完整图片和实际生图；交付展示PPT/PDF另需封装工具。本包不附带这些服务、账号或API权限。缺项如实说明；普通导出可以制作线稿和辅助检查，不能冒充最终模型美化。
+
+## 个人偏好
+
+按[偏好协议](.ai/knowledge/user-preferences.md)从[空白模板](.ai/templates/user-preferences.md)建立自己的.local/ppt-agent/preferences.md，或使用指定私有位置。本次要求优先，明确长期偏好才保存并告知；支持查看、修正、删除、暂停和迁移。不能持久读写的宿主提供可携带文本，不宣称自动记忆。个人档案不随公共分发包传播；升级时自行保留，勿填入公共.ai模板后转发。
 
 ## 运行辅助工具
 
@@ -88,13 +96,13 @@ python -m src.m1 --help
 
 ## 示例与复测
 
-已确认的原创四页[可编辑样例](examples/visual-sample/editable.pptx)及四张完整参考PNG位于examples/visual-sample。它们展示可编辑稿本身的效果；最终模型原图另行交付，不混称为可编辑能力。复测用[同一任务](.ai/templates/cross-host-trial.md)。
+已确认的原创四页[可编辑样例](examples/visual-sample/editable.pptx)及四张完整参考PNG位于examples/visual-sample，仅示范可选原生稿能力，不是新默认线稿流程的实测或前置。最终模型原图不在此示例中。复测用[同一任务](.ai/templates/cross-host-trial.md)。
 
 只读入口或包校验不证明已在其他AI实际制作成功。接收方应记录实际平台、工具、产物和未验证项。第三方依赖及字体许可分别适用，本包没有新增开源许可证或转授素材许可。
 ''',
         'src/README.md': '''# Python辅助工具
 
-运行条件见[使用说明](../使用说明.md)，内容与画面按[产品流程](../.ai/product-sop.md)。本包是独立快照，不依赖原作者目录。
+运行条件见[使用说明](../使用说明.md)，内容与画面按[产品流程](../.ai/product-sop.md)。本包是独立快照，不依赖原作者目录。默认大纲、线稿、选图及正式生图由宿主执行，以下原生PPT工具按需使用，不是默认前置，不提供自动记忆服务。
 
 ## 独立成品检查
 
@@ -115,7 +123,7 @@ m1 prepare-image含早期茶饮、暖白/茶绿样例提示词，不用作其他
 
 ## 再次分发
 
-src.release提供build/verify，保持源与发布快照独立。构建要求经过真实核对和人类确认的样页运行记录；包内示例清单不冒充原始验收记录。不要加入自己的任务资料、字体、密钥或缓存后转发。
+src.release提供build/verify，保持源与发布快照独立。构建要求经过真实核对和人类确认的可选原生样页记录；包内示例清单不冒充新默认流程实测。不要加入自己的任务资料、个人偏好、字体、密钥或缓存后转发。
 ''',
         'fonts/README.md': '''# 字体准备
 
@@ -128,6 +136,8 @@ src.release提供build/verify，保持源与发布快照独立。构建要求经
         '.ai/knowledge/architecture.md': '''# 发布包能力与结构
 
 从[SKILL.md](../../SKILL.md)进入[产品流程](../product-sop.md)，运行条件见[使用说明](../../使用说明.md)。核心规范与源版本一致，产品任务不用走仓库开发问卷。
+
+默认路径为准确大纲→真实内容线稿→看图选风格→原创素材及正式模型图，原生可编辑稿按需提供。线稿布局、风格提示词和自然文案规则为公共指导；个人偏好协议由宿主在私有文件执行，本包不提供自动记忆数据库。个人实例.local/ppt-agent/preferences.md不在分发包中，公共空白模板可复制使用。
 
 src.presentation_audit读取任意宿主的成品PPT、附加对象角色及可选辅助PDF，按场景配置检查实际字号、结构与可验证边界，未知项明确列出。它不替代视觉/人类验收，不修改旧manifest。src.release提供白名单分发与验证。
 
@@ -145,7 +155,14 @@ def _slug(text):
     return ''.join(c for c in text.lower().strip() if c in '-_' or not unicodedata.category(c).startswith(('P', 'S'))).replace(' ', '-')
 
 
+def _personal_path(relative: str) -> bool:
+    """约定的本地个人目录不能进入公共包，包括误放公共区的同名目录。"""
+    return '.local' in {part.casefold() for part in Path(relative).parts}
+
+
 def _allowed(relative: str) -> bool:
+    if _personal_path(relative):
+        return False
     if relative in {'SKILL.md', 'AGENTS.md', 'requirements.txt', '使用说明.md', 'release-manifest.json', 'fonts/README.md'} | JSON_RESOURCES:
         return True
     path = Path(relative)
