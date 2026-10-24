@@ -1,4 +1,6 @@
-# PPT_agent
+# absolutely-nice-PPT-skill
+
+> PPT_agent：制作与优化 PPT 的 AI skill。Let’s try it—you won’t forget it.
 
 制作与优化 PPT 的 AI skill（后续演进为 Agent）。
 
@@ -51,7 +53,7 @@ PPT_agent/
    ```
 5. 按 `fonts/README.md` 下载白名单字体，放入 `fonts/`。
 6. 依 `.ai/git-workflow.md` 在 feature 分支开发；当前仓库已初始化，无需重复执行初始化脚本。提交通过的检查点，由人类审查后合入。
-7. 需要远程协作时，按 `.ai/git-workflow.md` 关联远程仓库；本次样例仅本地分支，未推送。
+7. 需要远程协作时，按 `.ai/git-workflow.md` 使用任务分支和 Pull Request；禁止直接向 `main` 提交。
 
 ## M1 当前能力
 
@@ -59,9 +61,9 @@ PPT_agent/
 
 已确认大纲/风格 → 会话生图生成独立素材 → 单页可编辑 PPT（中文自适应）→ LO 辅助导出及几何/内容检查 → 用户确认 v1 → 生图交接包 → 会话工具整页重绘 → 逐字/数字与视觉核对。
 
-四个本地命令及运行条件见 [src/README.md](src/README.md)。样例执行源为 [m1-input.json](specs/2026-10-18-m1-single-slide/m1-input.json)，开发证据见 [design.md](specs/2026-10-18-m1-single-slide/design.md)。首张正式重绘已获人类视觉确认，代码、画面与素材来源检查通过，维护者已批准本次成果作为后续开发基础；已提供仓库内skill入口，独立打包与完整自动化仍在后续路线中。[验收说明](specs/2026-10-18-m1-single-slide/review.md)列出了交付物、当前限制与检查记录，实际合入记录见 Git 历史。
+四个本地命令及运行条件见 [src/README.md](src/README.md)。样例执行源为 [m1-input.json](specs/2026-10-18-m1-single-slide/m1-input.json)，开发证据见 [design.md](specs/2026-10-18-m1-single-slide/design.md)。首张正式重绘已获人类视觉确认，代码、画面与素材来源检查通过，维护者已批准本次成果作为后续开发基础；仓库已提供 skill 入口及独立发行构建、核验能力。[验收说明](specs/2026-10-18-m1-single-slide/review.md)列出了交付物、当前限制与检查记录，实际合入记录见 Git 历史。
 
-最终展示图使用当前会话的 image_gen 工具重绘，底层型号未知；没有独立 API 接入。M1交付为v1 PPTX、模型原生PNG、辅助PDF/参考图和核对记录。M2多页能力正在建设，部分检查点已通过，正式五页交付尚未完成验收；整图v2 PPTX、自动diff与独立skill打包仍在后续路线中。修改v1后先人工同步输入再重跑。
+最终展示图使用当前会话的 image_gen 工具重绘，底层型号未知；没有独立 API 接入。当前具备 M1 单页与 M2 多页可编辑 PPT 构建、逐页检查、跨宿主成品审查和独立 skill 发行核验能力；整页模型美化仍由会话工具完成，自动识别 v1 改动并局部重渲染仍在规划中。
 
 ## 日常怎么和 AI 协作
 
