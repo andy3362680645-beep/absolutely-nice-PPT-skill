@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "deck_id": "m1-single-slide",
+  "title": "喜茶 2025 年度营销回顾",
+  "canvas": {"width_pt": 960, "height_pt": 540, "reference_width_px": 2560},
+  "style": {
+    "background": "FAF8F1",
+    "text_color": "161A15",
+    "accent": "647547",
+    "fonts": {
+      "regular": {"path": "fonts/SourceHanSansSC-Regular.otf", "name": "思源黑体", "bold": false},
+      "bold": {"path": "fonts/SourceHanSansSC-Bold.otf", "name": "思源黑体", "bold": true}
+    },
+    "text_margin_pt": 2
+  },
+  "sources": [{
+    "id": "annual-review-report",
+    "publisher": "北京日报客户端",
+    "date": "2026-01-23",
+    "url": "https://xinwen.bjd.com.cn/content/s6973551be4b0cd719e9c9a31.html"
+  }],
+  "slides": [{
+    "slide_id": "slide-01",
+    "texts": [
+      {"id": "title", "role": "title", "text": "喜茶 2025 年度营销回顾", "box_pt": [40, 36, 880, 66], "font_key": "bold", "cap_pt": 40, "floor_pt": 32, "color": "161A15"},
+      {"id": "subtitle", "role": "subtitle", "text": "用户共创，让灵感成为日常", "box_pt": [40, 112, 790, 48], "font_key": "regular", "cap_pt": 26, "floor_pt": 22, "color": "647547"},
+      {"id": "heading-1", "role": "heading", "text": "喜贴回归", "box_pt": [40, 216, 198, 38], "font_key": "bold", "cap_pt": 24, "floor_pt": 22, "color": "161A15"},
+      {"id": "date-callout", "role": "body", "text": "2025.11", "box_pt": [40, 270, 198, 76], "font_key": "bold", "cap_pt": 36, "floor_pt": 32, "color": "435433", "fill_color": "E8EDDF", "margin_pt": 10, "align": "center"},
+      {"id": "body-1-detail", "role": "body", "text": "2025 年 11 月，\n喜茶 GO 小程序\n回归喜贴功能。", "box_pt": [40, 370, 198, 90], "font_key": "regular", "cap_pt": 18, "floor_pt": 18, "color": "161A15"},
+      {"id": "heading-2", "role": "heading", "text": "百万共创", "box_pt": [264, 216, 198, 38], "font_key": "bold", "cap_pt": 24, "floor_pt": 22, "color": "161A15"},
+      {"id": "artwork-callout", "role": "body", "text": "超 100 万份", "box_pt": [264, 270, 198, 76], "font_key": "bold", "cap_pt": 28, "floor_pt": 26, "color": "435433", "fill_color": "E8EDDF", "margin_pt": 8, "align": "center"},
+      {"id": "body-2-detail", "role": "body", "text": "上线一周，用户\n提交画作超\n100 万份。", "box_pt": [264, 370, 198, 90], "font_key": "regular", "cap_pt": 18, "floor_pt": 18, "color": "161A15"},
+      {"id": "heading-3", "role": "heading", "text": "灵感小卡", "box_pt": [488, 216, 198, 38], "font_key": "bold", "cap_pt": 24, "floor_pt": 22, "color": "161A15"},
+      {"id": "card-types-callout", "role": "body", "text": "近 30 款", "box_pt": [488, 270, 198, 76], "font_key": "bold", "cap_pt": 32, "floor_pt": 28, "color": "435433", "fill_color": "E8EDDF", "margin_pt": 10, "align": "center"},
+      {"id": "body-3-context", "role": "body", "text": "全年发放近 30 款、", "box_pt": [488, 370, 198, 30], "font_key": "regular", "cap_pt": 18, "floor_pt": 18, "color": "161A15"},
+      {"id": "body-3-count", "role": "body", "text": "超 500 万份。", "box_pt": [488, 402, 198, 48], "font_key": "bold", "cap_pt": 26, "floor_pt": 24, "color": "435433"},
+      {"id": "source", "role": "source", "text": "数据来源：北京日报客户端，2026-01-23。", "box_pt": [40, 486, 650, 28], "font_key": "regular", "cap_pt": 12, "floor_pt": 11, "color": "161A15"}
+    ],
+    "content_groups": {
+      "body-1": {"text": "2025 年 11 月，喜茶 GO 小程序回归喜贴功能。", "shape_ids": ["body-1-detail"]},
+      "body-2": {"text": "上线一周，用户提交画作超 100 万份。", "shape_ids": ["body-2-detail"]},
+      "body-3": {"text": "全年发放近 30 款、超 500 万份。", "shape_ids": ["body-3-context", "body-3-count"]}
+    },
+    "images": [
+      {"id": "background", "role": "background", "path": "assets/m1-single-slide/bg_01.png", "box_pt": [0, 0, 960, 540], "require_alpha": false},
+      {"id": "tea-illustration", "role": "illustration", "path": "assets/m1-single-slide/ill_01.png", "box_pt": [710, 190, 220, 290], "subject_safe_box_pt": [718, 200, 204, 270], "require_alpha": true}
+    ]
+  }]
+}

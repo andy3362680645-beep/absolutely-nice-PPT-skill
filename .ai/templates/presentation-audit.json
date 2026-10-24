@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "pptx_sha256": "填写 inventory 读取的实际 SHA256；本文件只是字段示例",
+  "profile_id": "classroom-diagram",
+  "require_thanks": true,
+  "slides": [
+    {
+      "slide_index": 1,
+      "pptx_slide_id": 256,
+      "kind": "content",
+      "message": "填写本页确认的主要意思",
+      "objects": [{"shape_path": [2], "role": "title"}]
+    },
+    {
+      "slide_index": 2,
+      "pptx_slide_id": 257,
+      "kind": "thanks",
+      "message": "独立谢谢与交流",
+      "objects": [{"shape_path": [2], "role": "thanks"}]
+    }
+  ]
+}

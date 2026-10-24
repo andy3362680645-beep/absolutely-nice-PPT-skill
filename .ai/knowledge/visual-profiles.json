@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "base_canvas_pt": [960, 540],
+  "profiles": {
+    "classroom-diagram": {
+      "label": "课堂图解",
+      "roles": {
+        "title": {"min_pt": 32, "recommended_pt": [36, 44]},
+        "heading": {"min_pt": 26, "recommended_pt": [28, 32]},
+        "body": {"min_pt": 22, "recommended_pt": [24, 28]},
+        "data_label": {"min_pt": 18, "recommended_pt": [18, 24]},
+        "source": {"min_pt": 12, "recommended_pt": [12, 14]},
+        "page_number": {"min_pt": 12, "recommended_pt": [12, 14]},
+        "thanks": {"min_pt": 36, "recommended_pt": [44, 56]},
+        "contact": {"min_pt": 18, "recommended_pt": [20, 24]}
+      }
+    },
+    "work-report": {
+      "label": "工作汇报",
+      "roles": {
+        "title": {"min_pt": 32, "recommended_pt": [36, 44]},
+        "heading": {"min_pt": 26, "recommended_pt": [28, 32]},
+        "body": {"min_pt": 22, "recommended_pt": [24, 28]},
+        "data_label": {"min_pt": 18, "recommended_pt": [18, 24]},
+        "source": {"min_pt": 12, "recommended_pt": [12, 14]},
+        "page_number": {"min_pt": 12, "recommended_pt": [12, 14]},
+        "thanks": {"min_pt": 36, "recommended_pt": [44, 56]},
+        "contact": {"min_pt": 18, "recommended_pt": [20, 24]}
+      }
+    },
+    "brand": {
+      "label": "商业品牌",
+      "roles": {
+        "title": {"min_pt": 32, "recommended_pt": [40, 52]},
+        "heading": {"min_pt": 26, "recommended_pt": [28, 36]},
+        "body": {"min_pt": 22, "recommended_pt": [24, 30]},
+        "data_label": {"min_pt": 18, "recommended_pt": [18, 24]},
+        "source": {"min_pt": 12, "recommended_pt": [12, 14]},
+        "page_number": {"min_pt": 12, "recommended_pt": [12, 14]},
+        "thanks": {"min_pt": 36, "recommended_pt": [44, 60]},
+        "contact": {"min_pt": 18, "recommended_pt": [20, 24]}
+      }
+    }
+  }
+}
