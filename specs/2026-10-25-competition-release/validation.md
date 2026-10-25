@@ -1,7 +1,7 @@
 # 阶段 5 验证记录 · 参赛公开技能包发布
 
-日期：2026-10-25  
-分支：`chore/competition-release`  
+日期：2026-10-25
+分支：`chore/competition-release`
 发布版本：`2026-10-25-competition-v1`
 
 ## 最终交付
