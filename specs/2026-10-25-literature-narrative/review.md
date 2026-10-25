@@ -61,4 +61,6 @@
 
 ## 结论与发布状态
 
-阻塞项清零，建议人类审查后合入。GitHub推送与PR结果待执行后补记；不会自行合并。
+阻塞项清零，建议人类审查后合入。已实际推送codex/literature-narrative并创建[PR #3](https://github.com/andy3362680645-beep/absolutely-nice-PPT-skill/pull/3)，已附加到当前任务。未自行合并。
+
+推送前最终检查输出：Final publication check passed: 8 approved text files; no tracked private files or private identity/path patterns. 分支推送退出0，gh pr create返回上述PR链接。
