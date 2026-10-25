@@ -20,7 +20,7 @@ description: 制作与优化工作、商业品牌和课堂文献汇报PPT。先�
 ## 按环节读取
 
 1. 开始时读[个人偏好协议](.ai/knowledge/user-preferences.md)，查已知私有档案；无档案就继续。本次要求优先，单次认可不自动成为长期偏好，不能声称宿主未实现的自动记忆。
-2. 内容阶段读[文案与来源](.ai/knowledge/content-style.md)，用[大纲模板](.ai/templates/deck-outline.md)。去空泛口号、机械对仗和免责套话；事实限定和证据边界保留。文献/科研/课堂论文另读[文献约定](.ai/knowledge/literature-report.md)，防止堆字，也防止删去必要分析。
+2. 内容阶段读[文案与来源](.ai/knowledge/content-style.md)，用[大纲模板](.ai/templates/deck-outline.md)。去空泛口号、机械对仗和免责套话；事实限定和证据边界保留。文献/科研/课堂论文另读[文献约定](.ai/knowledge/literature-report.md)：先梳理原文叙事，区分页间任务并明确衔接，再组织评价；防止堆字，也防止删去必要分析。
 3. 线稿阶段读[线稿布局](.ai/knowledge/wireframe-layouts.md)：真实文案、实际数据、图片占位比例、层级和阅读顺序，逐页及总览供用户确认。超量先精简重复、图解、重排或讨论拆页。
 4. 风格阶段读[参考图与提示词](.ai/knowledge/style-prompts.md)，用[风格参数表](.ai/templates/style-params.md)。AI搜索并展示差异明显的参考图片供选择；用户不满意或已有参考时由用户提供图片。AI自动提取参数与组织提示词，不要求用户先用语言描述审美或编写提示词。
 5. 制作素材、正式图与交付时读[视觉约定](.ai/knowledge/visual-workflow.md)。选定一般设计规律后重新构图，创作原创元素；不复用模板素材，不把模型重绘当作版权授权。真实图片核查来源、用途和保真。
