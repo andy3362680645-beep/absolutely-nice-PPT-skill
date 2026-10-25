@@ -15,7 +15,7 @@
 ## 分支与范围
 
 - 分支：`chore/competition-release`
-- 相对 `origin/main`：3 个提交、3 个新增文本文件；未修改 `src/`、`SKILL.md`、`.ai` 公共规则、样例和旧发布包。
+- 相对 `origin/main`：4 个任务提交、4 个新增文本文件；未修改 `src/`、`SKILL.md`、`.ai` 公共规则、样例和旧发布包。
 - 改动文件：`spec.md`、`design.md`、`validation.md`；本文件提交后共 4 份任务留档。
 - 关联规格：[spec.md](spec.md)、[design.md](design.md)、[validation.md](validation.md)。
 - 正式 ZIP 位于被 Git 忽略的 `output/releases/`，不会进入 GitHub 仓库。
